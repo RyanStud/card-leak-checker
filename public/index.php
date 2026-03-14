@@ -1,0 +1,72 @@
+<?php
+
+require __DIR__ . '/../app/core/Env.php';
+Env::load(__DIR__ . '/../.env');
+
+require __DIR__ . '/../app/helpers/env.php';
+
+$sessionName = env('SESSION_NAME', 'cardleak_session');
+session_name($sessionName);
+
+session_start();
+
+require __DIR__ . '/../app/core/Database.php';
+require __DIR__ . '/../app/core/Controller.php';
+require __DIR__ . '/../app/core/Router.php';
+
+require __DIR__ . '/../app/helpers/view.php';
+require __DIR__ . '/../app/helpers/auth.php';
+require __DIR__ . '/../app/helpers/csrf.php';
+require __DIR__ . '/../app/helpers/otp.php';
+require __DIR__ . '/../app/helpers/security.php';
+require __DIR__ . '/../app/helpers/logger.php';
+require __DIR__ . '/../app/helpers/mailer.php';
+
+require __DIR__ . '/../app/middleware/AuthMiddleware.php';
+
+
+require __DIR__ . '/../app/models/User.php';
+require __DIR__ . '/../app/models/Project.php';
+require __DIR__ . '/../app/models/CardCheckRequest.php';
+require __DIR__ . '/../app/models/AuditLog.php';
+require __DIR__ . '/../app/models/Privacy.php';
+
+require __DIR__ . '/../app/controllers/AuthController.php';
+require __DIR__ . '/../app/controllers/DashboardController.php';
+require __DIR__ . '/../app/controllers/ProjectController.php';
+require __DIR__ . '/../app/controllers/CardController.php';
+require __DIR__ . '/../app/controllers/PrivacyController.php';
+
+$router = new Router();
+
+$router->get('/', [AuthController::class, 'showLogin']);
+
+$router->get('/login', [AuthController::class, 'showLogin']);
+$router->post('/login', [AuthController::class, 'login']);
+
+$router->get('/register', [AuthController::class, 'showRegister']);
+$router->post('/register', [AuthController::class, 'register']);
+
+$router->get('/2fa/setup', [AuthController::class, 'showSetup2FA']);
+$router->post('/2fa/setup', [AuthController::class, 'setup2FA']);
+
+$router->get('/2fa/verify', [AuthController::class, 'showVerify2FA']);
+$router->post('/2fa/verify', [AuthController::class, 'verify2FA']);
+
+$router->post('/logout', [AuthController::class, 'logout']);
+
+$router->get('/dashboard', [DashboardController::class, 'index']);
+
+$router->get('/projects', [ProjectController::class, 'index']);
+$router->post('/projects', [ProjectController::class, 'create']);
+
+$router->get('/check-card', [CardController::class, 'showForm']);
+$router->post('/check-card', [CardController::class, 'check']);
+$router->get('/cards/history', [CardController::class, 'history']);
+
+$router->get('/privacy', [PrivacyController::class, 'index']);
+$router->post('/privacy/delete-history', [PrivacyController::class, 'deleteHistory']);
+$router->post('/privacy/delete-projects', [PrivacyController::class, 'deleteProjects']);
+$router->post('/privacy/delete-account', [PrivacyController::class, 'deleteAccount']);
+
+$router->dispatch($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);
