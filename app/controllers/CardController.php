@@ -36,6 +36,11 @@ class CardController extends Controller
             $this->redirect('/card-leak-checker/public/check-card');
         }
 
+        if (!luhn_is_valid($digits)) {
+            set_flash('error', 'O cartão informado falhou na validação Luhn.');
+            $this->redirect('/card-leak-checker/public/check-card');
+        }
+
         $binMasked = mask_bin($digits);
         $last4Masked = mask_last4($digits);
         $fingerprint = card_fingerprint($digits);
@@ -60,7 +65,8 @@ class CardController extends Controller
             json_encode([
                 'bin_masked' => $binMasked,
                 'last4' => $last4Masked,
-                'result' => $resultStatus
+                'result' => $resultStatus,
+                'luhn_validated' => true
             ], JSON_UNESCAPED_UNICODE)
         );
 

@@ -2,10 +2,10 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Esqueci minha senha</title>
 </head>
 <body>
-    <h1>Login</h1>
+    <h1>Recuperação de senha</h1>
 
     <?php if ($msg = flash('error')): ?>
         <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
@@ -15,7 +15,9 @@
         <p style="color:green;"><?= htmlspecialchars($msg) ?></p>
     <?php endif; ?>
 
-    <form method="POST" action="/card-leak-checker/public/login">
+    <p>Informe seu e-mail para gerar um link de redefinição.</p>
+
+    <form method="POST" action="/card-leak-checker/public/forgot-password">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
 
         <div>
@@ -23,15 +25,9 @@
             <input type="email" name="email" required>
         </div>
 
-        <div>
-            <label>Senha</label><br>
-            <input type="password" name="password" required>
-        </div>
-
-        <button type="submit">Entrar</button>
+        <button type="submit">Gerar link</button>
     </form>
 
-    <p><a href="/card-leak-checker/public/register">Criar conta</a></p>
-    <p><a href="/card-leak-checker/public/forgot-password">Esqueci minha senha</a></p>
+    <p><a href="/card-leak-checker/public/login">Voltar ao login</a></p>
 </body>
 </html>

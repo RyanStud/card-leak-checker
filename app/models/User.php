@@ -44,4 +44,13 @@ class User
 
         return $stmt->execute([$secret, $userId]);
     }
+
+    public function updatePassword(int $userId, string $passwordHash): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET password_hash = ? WHERE id = ?'
+        );
+
+        return $stmt->execute([$passwordHash, $userId]);
+    }
 }

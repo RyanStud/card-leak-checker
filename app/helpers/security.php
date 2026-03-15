@@ -36,6 +36,28 @@ function looks_like_valid_card(string $digits): bool
     return preg_match('/^\d{13,19}$/', $digits) === 1;
 }
 
+function luhn_is_valid(string $digits): bool
+{
+    $sum = 0;
+    $alt = false;
+
+    for ($i = strlen($digits) - 1; $i >= 0; $i--) {
+        $n = (int)$digits[$i];
+
+        if ($alt) {
+            $n *= 2;
+            if ($n > 9) {
+                $n -= 9;
+            }
+        }
+
+        $sum += $n;
+        $alt = !$alt;
+    }
+
+    return $sum % 10 === 0;
+}
+
 function demo_card_leak_check(string $digits): string
 {
     $last4 = substr($digits, -4);
@@ -47,4 +69,22 @@ function demo_card_leak_check(string $digits): string
     }
 
     return 'no_evidence_found';
+}
+
+function client_ip(): string
+{
+    $keys = [
+        'HTTP_CF_CONNECTING_IP',
+        'HTTP_X_FORWARDED_FOR',
+        'REMOTE_ADDR',
+    ];
+
+    foreach ($keys as $key) {
+        if (!empty($_SERVER[$key])) {
+            $value = explode(',', $_SERVER[$key])[0];
+            return trim($value);
+        }
+    }
+
+    return '0.0.0.0';
 }

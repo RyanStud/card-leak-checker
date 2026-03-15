@@ -24,12 +24,14 @@ require __DIR__ . '/../app/helpers/mailer.php';
 
 require __DIR__ . '/../app/middleware/AuthMiddleware.php';
 
-
 require __DIR__ . '/../app/models/User.php';
 require __DIR__ . '/../app/models/Project.php';
 require __DIR__ . '/../app/models/CardCheckRequest.php';
 require __DIR__ . '/../app/models/AuditLog.php';
 require __DIR__ . '/../app/models/Privacy.php';
+require __DIR__ . '/../app/models/LoginAttempt.php';
+require __DIR__ . '/../app/models/SuspiciousEvent.php';
+require __DIR__ . '/../app/models/PasswordReset.php';
 
 require __DIR__ . '/../app/controllers/AuthController.php';
 require __DIR__ . '/../app/controllers/DashboardController.php';
@@ -52,6 +54,12 @@ $router->post('/2fa/setup', [AuthController::class, 'setup2FA']);
 
 $router->get('/2fa/verify', [AuthController::class, 'showVerify2FA']);
 $router->post('/2fa/verify', [AuthController::class, 'verify2FA']);
+
+$router->get('/forgot-password', [AuthController::class, 'showForgotPassword']);
+$router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+
+$router->get('/reset-password', [AuthController::class, 'showResetPassword']);
+$router->post('/reset-password', [AuthController::class, 'resetPassword']);
 
 $router->post('/logout', [AuthController::class, 'logout']);
 
