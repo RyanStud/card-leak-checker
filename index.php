@@ -62,6 +62,7 @@ require __DIR__ . '/app/models/Privacy.php';
 require __DIR__ . '/app/models/LoginAttempt.php';
 require __DIR__ . '/app/models/SuspiciousEvent.php';
 require __DIR__ . '/app/models/PasswordReset.php';
+require __DIR__ . '/app/models/EmailVerification.php';
 require __DIR__ . '/app/models/AdminDashboard.php';
 
 require __DIR__ . '/app/controllers/AuthController.php';
@@ -80,6 +81,8 @@ $router->post('/login', [AuthController::class, 'login']);
 
 $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
+$router->get('/register/confirmation', [AuthController::class, 'showRegisterConfirmation']);
+$router->get('/confirm-email', [AuthController::class, 'confirmEmail']);
 
 $router->get('/2fa/setup', [AuthController::class, 'showSetup2FA']);
 $router->post('/2fa/setup', [AuthController::class, 'setup2FA']);
