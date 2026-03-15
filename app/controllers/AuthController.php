@@ -44,14 +44,67 @@ class AuthController extends Controller
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         $userModel->create($name, $email, $passwordHash);
 
+        $createdUser = $userModel->findByEmail($email);
+
+        if ($createdUser) {
+            $plainToken = bin2hex(random_bytes(32));
+            $tokenHash = hash('sha256', $plainToken);
+            $expiresAt = date('Y-m-d H:i:s', time() + 3600);
+
+            $verificationModel = new EmailVerification();
+            $verificationModel->invalidateAllByUser((int)$createdUser['id']);
+            $verificationModel->create((int)$createdUser['id'], $createdUser['email'], $tokenHash, $expiresAt);
+
+            $appUrl = rtrim((string)env('APP_URL', 'http://localhost/card-leak-checker'), '/');
+            $verificationLink = $appUrl . '/confirm-email?token=' . urlencode($plainToken);
+
+            send_demo_mail(
+                $createdUser['email'],
+                'Confirmação de cadastro',
+                "Confirme seu cadastro acessando o link: {$verificationLink}"
+            );
+        }
+
         unset($_SESSION['old']);
-        set_flash('success', 'Cadastro realizado com sucesso. Agora faça login.');
-        $this->redirect(base_path('/login'));
+        set_flash('success', 'Cadastro realizado. Enviamos um link de confirmação para o seu e-mail.');
+        $this->redirect(base_path('/register/confirmation'));
     }
 
     public function showLogin(): void
     {
         $this->view('auth/login');
+    }
+
+    public function showRegisterConfirmation(): void
+    {
+        $this->view('auth/register-confirmation');
+    }
+
+    public function confirmEmail(): void
+    {
+        $token = clean_text($_GET['token'] ?? '');
+
+        if ($token === '') {
+            set_flash('error', 'Token de confirmação inválido.');
+            $this->redirect(base_path('/register/confirmation'));
+        }
+
+        $verificationModel = new EmailVerification();
+        $verification = $verificationModel->findValidByToken($token);
+
+        if (!$verification) {
+            set_flash('error', 'Link de confirmação inválido ou expirado.');
+            $this->redirect(base_path('/register/confirmation'));
+        }
+
+        $userModel = new User();
+        $userModel->markEmailAsVerified((int)$verification['user_id']);
+
+        $verificationModel->markAsUsed((int)$verification['id']);
+        $verificationModel->invalidateAllByUser((int)$verification['user_id']);
+
+        set_flash('success', 'E-mail confirmado com sucesso. Agora você pode fazer login.');
+        $this->redirect(base_path('/login'));
     }
 
     public function login(): void
@@ -105,6 +158,11 @@ class AuthController extends Controller
 
             set_flash('error', 'Credenciais inválidas.');
             $this->redirect(base_path('/login'));
+        }
+
+        if ((int)$user['email_verified'] !== 1) {
+            set_flash('error', 'Confirme seu e-mail antes de fazer login. Verifique o link enviado no cadastro.');
+            $this->redirect(base_path('/register/confirmation'));
         }
 
         $loginAttemptModel->create($email, $ip, true);
