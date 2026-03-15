@@ -21,11 +21,11 @@ class Router
 
         $basePath = rtrim(parse_url((string) env('APP_URL', ''), PHP_URL_PATH) ?? '', '/');
 
-        if ($basePath !== '' && str_starts_with($path, $basePath)) {
+        if ($path !== null && $basePath !== '' && str_starts_with($path, $basePath)) {
             $path = substr($path, strlen($basePath));
         }
 
-        if ($path === '' || $path === false) {
+        if ($path === '' || $path === null) {
             $path = '/';
         }
 

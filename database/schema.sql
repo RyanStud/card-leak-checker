@@ -115,7 +115,3 @@ CREATE TABLE IF NOT EXISTS password_resets (
         REFERENCES users(id) 
         ON DELETE CASCADE
 );
-
-UPDATE users
-SET role = 'admin'
-WHERE email = 'ryan.marques@pucpr.edu.br';
