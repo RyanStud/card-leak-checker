@@ -357,3 +357,10 @@ DB_NAME=card_leak_checker
 DB_USER=root
 DB_PASS=
 ```
+
+## 11. Hospedagem e serviços 
+
+Dominio: Hostinguer
+Servidor de email: mailtrap
+Hospedagem de aplicação: Hostinguer
+DB: Hostinguer/SQL
