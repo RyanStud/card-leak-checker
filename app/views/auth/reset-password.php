@@ -8,12 +8,12 @@
     <h1>Redefinir senha</h1>
 
     <?php if ($msg = flash('error')): ?>
-        <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:red;"><?= e($msg) ?></p>
     <?php endif; ?>
 
-    <form method="POST" action="/card-leak-checker/public/reset-password">
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
-        <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+    <form method="POST" action="<?= e(base_path('/reset-password')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="token" value="<?= e($token) ?>">
 
         <div>
             <label>Nova senha</label><br>

@@ -40,7 +40,7 @@ class PrivacyController extends Controller
         );
 
         set_flash('success', 'Seu histórico de verificações foi apagado com sucesso.');
-        $this->redirect('/card-leak-checker/public/privacy');
+        $this->redirect(base_path('/privacy'));
     }
 
     public function deleteProjects(): void
@@ -62,7 +62,7 @@ class PrivacyController extends Controller
         );
 
         set_flash('success', 'Seus projetos próprios foram apagados com sucesso.');
-        $this->redirect('/card-leak-checker/public/privacy');
+        $this->redirect(base_path('/privacy'));
     }
 
     public function deleteAccount(): void
@@ -72,24 +72,24 @@ class PrivacyController extends Controller
 
         $userId = (int)$_SESSION['user_id'];
         $password = $_POST['password'] ?? '';
-        $code = trim($_POST['code'] ?? '');
+        $code = clean_numeric_text($_POST['code'] ?? '');
 
         $userModel = new User();
         $user = $userModel->findById($userId);
 
         if (!$user) {
             logout_user();
-            $this->redirect('/card-leak-checker/public/login');
+            $this->redirect(base_path('/login'));
         }
 
         if (!password_verify($password, $user['password_hash'])) {
             set_flash('error', 'Senha incorreta para exclusão da conta.');
-            $this->redirect('/card-leak-checker/public/privacy');
+            $this->redirect(base_path('/privacy'));
         }
 
         if (empty($user['two_factor_secret']) || !verify_totp_code($user['two_factor_secret'], $code)) {
             set_flash('error', 'Código do Google Authenticator inválido.');
-            $this->redirect('/card-leak-checker/public/privacy');
+            $this->redirect(base_path('/privacy'));
         }
 
         $privacyModel = new Privacy();
@@ -103,6 +103,6 @@ class PrivacyController extends Controller
         session_start();
         set_flash('success', 'Conta excluída com sucesso.');
 
-        $this->redirect('/card-leak-checker/public/login');
+        $this->redirect(base_path('/login'));
     }
 }

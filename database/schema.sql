@@ -1,5 +1,8 @@
-CREATE DATABASE IF NOT EXISTS card_leak_checker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE card_leak_checker;
+CREATE DATABASE IF NOT EXISTS u870812724_card_leak_chec 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+
+USE u870812724_card_leak_chec;
 
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -9,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified TINYINT(1) DEFAULT 1,
     two_factor_enabled TINYINT(1) DEFAULT 0,
     two_factor_secret VARCHAR(255) NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -20,7 +24,10 @@ CREATE TABLE IF NOT EXISTS projects (
     owner_user_id INT NOT NULL,
     privacy_mode VARCHAR(30) NOT NULL DEFAULT 'private',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_projects_owner FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_projects_owner 
+        FOREIGN KEY (owner_user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS project_memberships (
@@ -30,8 +37,14 @@ CREATE TABLE IF NOT EXISTS project_memberships (
     role VARCHAR(30) NOT NULL DEFAULT 'member',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_project_user (project_id, user_id),
-    CONSTRAINT fk_membership_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    CONSTRAINT fk_membership_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_membership_project 
+        FOREIGN KEY (project_id) 
+        REFERENCES projects(id) 
+        ON DELETE CASCADE,
+    CONSTRAINT fk_membership_user 
+        FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS card_check_requests (
@@ -44,8 +57,14 @@ CREATE TABLE IF NOT EXISTS card_check_requests (
     result_status VARCHAR(50) NOT NULL,
     source_name VARCHAR(80) NOT NULL DEFAULT 'demo-local',
     checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_check_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_check_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    CONSTRAINT fk_check_user 
+        FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE,
+    CONSTRAINT fk_check_project 
+        FOREIGN KEY (project_id) 
+        REFERENCES projects(id) 
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -55,11 +74,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     action_name VARCHAR(100) NOT NULL,
     metadata TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_audit_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+    CONSTRAINT fk_audit_user 
+        FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE,
+    CONSTRAINT fk_audit_project 
+        FOREIGN KEY (project_id) 
+        REFERENCES projects(id) 
+        ON DELETE SET NULL
 );
-
-USE card_leak_checker;
 
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -87,5 +110,12 @@ CREATE TABLE IF NOT EXISTS password_resets (
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_password_resets_user 
+        FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
 );
+
+UPDATE users
+SET role = 'admin'
+WHERE email = 'ryan.marques@pucpr.edu.br';

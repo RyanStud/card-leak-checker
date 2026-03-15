@@ -19,12 +19,13 @@ class Router
     {
         $path = parse_url($uri, PHP_URL_PATH);
 
-        $basePath = '/card-leak-checker/public';
-        if (str_starts_with($path, $basePath)) {
+        $basePath = rtrim(parse_url((string) env('APP_URL', ''), PHP_URL_PATH) ?? '', '/');
+
+        if ($basePath !== '' && str_starts_with($path, $basePath)) {
             $path = substr($path, strlen($basePath));
         }
 
-        if ($path === '') {
+        if ($path === '' || $path === false) {
             $path = '/';
         }
 

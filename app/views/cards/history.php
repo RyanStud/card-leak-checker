@@ -8,9 +8,9 @@
     <h1>Histórico de verificações</h1>
 
     <p>
-        <a href="/card-leak-checker/public/dashboard">Dashboard</a> |
-        <a href="/card-leak-checker/public/projects">Projetos</a> |
-        <a href="/card-leak-checker/public/check-card">Nova verificação</a>
+        <a href="<?= e(base_path('/dashboard')) ?>">Dashboard</a> |
+        <a href="<?= e(base_path('/projects')) ?>">Projetos</a> |
+        <a href="<?= e(base_path('/check-card')) ?>">Nova verificação</a>
     </p>
 
     <?php if (empty($history)): ?>
@@ -29,12 +29,12 @@
             <?php foreach ($history as $row): ?>
                 <tr>
                     <td><?= (int)$row['id'] ?></td>
-                    <td><?= htmlspecialchars($row['project_name']) ?></td>
-                    <td><?= htmlspecialchars($row['bin_masked']) ?></td>
-                    <td><?= htmlspecialchars($row['last4_masked']) ?></td>
-                    <td><?= htmlspecialchars($row['result_status']) ?></td>
-                    <td><?= htmlspecialchars($row['source_name']) ?></td>
-                    <td><?= htmlspecialchars($row['checked_at']) ?></td>
+                    <td><?= e($row['project_name']) ?></td>
+                    <td><?= e($row['bin_masked']) ?></td>
+                    <td><?= e($row['last4_masked']) ?></td>
+                    <td><?= e($row['result_status']) ?></td>
+                    <td><?= e($row['source_name']) ?></td>
+                    <td><?= e($row['checked_at']) ?></td>
                 </tr>
             <?php endforeach; ?>
         </table>

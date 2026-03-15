@@ -19,12 +19,12 @@ class ProjectController extends Controller
         AuthMiddleware::handle();
         verify_csrf();
 
-        $name = trim($_POST['name'] ?? '');
-        $privacyMode = trim($_POST['privacy_mode'] ?? 'private');
+        $name = clean_text($_POST['name'] ?? '');
+        $privacyMode = clean_text($_POST['privacy_mode'] ?? 'private');
 
         if ($name === '' || mb_strlen($name) < 3) {
             set_flash('error', 'Nome do projeto inválido.');
-            $this->redirect('/card-leak-checker/public/projects');
+            $this->redirect(base_path('/projects'));
         }
 
         if (!in_array($privacyMode, ['private', 'restricted'], true)) {
@@ -46,6 +46,6 @@ class ProjectController extends Controller
         );
 
         set_flash('success', 'Projeto criado com sucesso.');
-        $this->redirect('/card-leak-checker/public/projects');
+        $this->redirect(base_path('/projects'));
     }
 }

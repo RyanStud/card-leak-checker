@@ -20,25 +20,25 @@ class CardController extends Controller
         verify_csrf();
 
         $projectId = (int)($_POST['project_id'] ?? 0);
-        $cardNumber = trim($_POST['card_number'] ?? '');
+        $cardNumber = clean_numeric_text($_POST['card_number'] ?? '');
 
         $projectModel = new Project();
 
         if (!$projectModel->userHasAccess($projectId, (int)$_SESSION['user_id'])) {
             set_flash('error', 'Você não tem acesso a esse projeto.');
-            $this->redirect('/card-leak-checker/public/check-card');
+            $this->redirect(base_path('/check-card'));
         }
 
         $digits = card_digits_only($cardNumber);
 
         if (!looks_like_valid_card($digits)) {
             set_flash('error', 'Número de cartão inválido para demonstração.');
-            $this->redirect('/card-leak-checker/public/check-card');
+            $this->redirect(base_path('/check-card'));
         }
 
         if (!luhn_is_valid($digits)) {
             set_flash('error', 'O cartão informado falhou na validação Luhn.');
-            $this->redirect('/card-leak-checker/public/check-card');
+            $this->redirect(base_path('/check-card'));
         }
 
         $binMasked = mask_bin($digits);
@@ -78,7 +78,7 @@ class CardController extends Controller
             'checked_at' => date('Y-m-d H:i:s')
         ];
 
-        $this->redirect('/card-leak-checker/public/check-card');
+        $this->redirect(base_path('/check-card'));
     }
 
     public function history(): void

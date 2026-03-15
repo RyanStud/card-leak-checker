@@ -28,11 +28,14 @@ class Env
             $key = trim($key);
             $value = trim($value);
 
+            if ($key === '') {
+                continue;
+            }
+
             $value = self::normalizeValue($value);
 
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
-
             putenv("$key=$value");
         }
 

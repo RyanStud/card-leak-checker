@@ -8,23 +8,23 @@
     <h1>Projetos</h1>
 
     <p>
-        <a href="/card-leak-checker/public/dashboard">Dashboard</a> |
-        <a href="/card-leak-checker/public/check-card">Verificar cartão</a> |
-        <a href="/card-leak-checker/public/cards/history">Histórico</a>
+        <a href="<?= e(base_path('/dashboard')) ?>">Dashboard</a> |
+        <a href="<?= e(base_path('/check-card')) ?>">Verificar cartão</a> |
+        <a href="<?= e(base_path('/cards/history')) ?>">Histórico</a>
     </p>
 
     <?php if ($msg = flash('error')): ?>
-        <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:red;"><?= e($msg) ?></p>
     <?php endif; ?>
 
     <?php if ($msg = flash('success')): ?>
-        <p style="color:green;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:green;"><?= e($msg) ?></p>
     <?php endif; ?>
 
     <h2>Criar novo projeto</h2>
 
-    <form method="POST" action="/card-leak-checker/public/projects">
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+    <form method="POST" action="<?= e(base_path('/projects')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
         <div>
             <label>Nome do projeto</label><br>
@@ -59,11 +59,11 @@
             <?php foreach ($projects as $project): ?>
                 <tr>
                     <td><?= (int)$project['id'] ?></td>
-                    <td><?= htmlspecialchars($project['name']) ?></td>
-                    <td><?= htmlspecialchars($project['slug']) ?></td>
-                    <td><?= htmlspecialchars($project['privacy_mode']) ?></td>
-                    <td><?= htmlspecialchars($project['role']) ?></td>
-                    <td><?= htmlspecialchars($project['created_at']) ?></td>
+                    <td><?= e($project['name']) ?></td>
+                    <td><?= e($project['slug']) ?></td>
+                    <td><?= e($project['privacy_mode']) ?></td>
+                    <td><?= e($project['role']) ?></td>
+                    <td><?= e($project['created_at']) ?></td>
                 </tr>
             <?php endforeach; ?>
         </table>

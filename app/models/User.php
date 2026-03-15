@@ -53,4 +53,15 @@ class User
 
         return $stmt->execute([$passwordHash, $userId]);
     }
+
+    public function getAllUsers(): array
+    {
+        $stmt = $this->pdo->query(
+            'SELECT id, name, email, role, email_verified, two_factor_enabled, created_at
+             FROM users
+             ORDER BY created_at DESC'
+        );
+
+        return $stmt->fetchAll();
+    }
 }

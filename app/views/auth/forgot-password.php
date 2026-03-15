@@ -8,17 +8,17 @@
     <h1>Recuperação de senha</h1>
 
     <?php if ($msg = flash('error')): ?>
-        <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:red;"><?= e($msg) ?></p>
     <?php endif; ?>
 
     <?php if ($msg = flash('success')): ?>
-        <p style="color:green;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:green;"><?= e($msg) ?></p>
     <?php endif; ?>
 
     <p>Informe seu e-mail para gerar um link de redefinição.</p>
 
-    <form method="POST" action="/card-leak-checker/public/forgot-password">
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+    <form method="POST" action="<?= e(base_path('/forgot-password')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
         <div>
             <label>E-mail</label><br>
@@ -28,6 +28,6 @@
         <button type="submit">Gerar link</button>
     </form>
 
-    <p><a href="/card-leak-checker/public/login">Voltar ao login</a></p>
+    <p><a href="<?= e(base_path('/login')) ?>">Voltar ao login</a></p>
 </body>
 </html>

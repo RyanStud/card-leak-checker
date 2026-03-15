@@ -8,21 +8,21 @@
     <h1>Configurar Google Authenticator</h1>
 
     <?php if ($msg = flash('error')): ?>
-        <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:red;"><?= e($msg) ?></p>
     <?php endif; ?>
 
-    <p>Conta: <strong><?= htmlspecialchars($email) ?></strong></p>
+    <p>Conta: <strong><?= e($email) ?></strong></p>
     <p>Adicione manualmente no Google Authenticator com esta chave:</p>
 
-    <pre><?= htmlspecialchars($secret) ?></pre>
+    <pre><?= e($secret) ?></pre>
 
     <p>URI TOTP:</p>
-    <textarea rows="4" cols="100" readonly><?= htmlspecialchars($otpauth) ?></textarea>
+    <textarea rows="4" cols="100" readonly><?= e($otpauth) ?></textarea>
 
     <p>Depois digite o código gerado no app:</p>
 
-    <form method="POST" action="/card-leak-checker/public/2fa/setup">
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+    <form method="POST" action="<?= e(base_path('/2fa/setup')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
         <input type="text" name="code" maxlength="6" required>
         <button type="submit">Ativar 2FA</button>
     </form>

@@ -8,31 +8,31 @@
     <h1>Verificação de possível vazamento</h1>
 
     <p>
-        <a href="/card-leak-checker/public/dashboard">Dashboard</a> |
-        <a href="/card-leak-checker/public/projects">Projetos</a> |
-        <a href="/card-leak-checker/public/cards/history">Histórico</a>
+        <a href="<?= e(base_path('/dashboard')) ?>">Dashboard</a> |
+        <a href="<?= e(base_path('/projects')) ?>">Projetos</a> |
+        <a href="<?= e(base_path('/cards/history')) ?>">Histórico</a>
     </p>
 
     <?php if ($msg = flash('error')): ?>
-        <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:red;"><?= e($msg) ?></p>
     <?php endif; ?>
 
     <?php if (!empty($_SESSION['check_result'])): ?>
         <?php $result = $_SESSION['check_result']; unset($_SESSION['check_result']); ?>
         <div style="border:1px solid #333; padding:12px; margin-bottom:20px;">
             <h3>Resultado da última consulta</h3>
-            <p><strong>BIN mascarado:</strong> <?= htmlspecialchars($result['bin_masked']) ?></p>
-            <p><strong>Últimos 4:</strong> <?= htmlspecialchars($result['last4_masked']) ?></p>
-            <p><strong>Status:</strong> <?= htmlspecialchars($result['result_status']) ?></p>
-            <p><strong>Data:</strong> <?= htmlspecialchars($result['checked_at']) ?></p>
+            <p><strong>BIN mascarado:</strong> <?= e($result['bin_masked']) ?></p>
+            <p><strong>Últimos 4:</strong> <?= e($result['last4_masked']) ?></p>
+            <p><strong>Status:</strong> <?= e($result['result_status']) ?></p>
+            <p><strong>Data:</strong> <?= e($result['checked_at']) ?></p>
         </div>
     <?php endif; ?>
 
     <?php if (empty($projects)): ?>
         <p>Você precisa criar um projeto antes de consultar.</p>
     <?php else: ?>
-        <form method="POST" action="/card-leak-checker/public/check-card">
-            <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+        <form method="POST" action="<?= e(base_path('/check-card')) ?>">
+            <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
             <div>
                 <label>Projeto</label><br>
@@ -40,7 +40,7 @@
                     <option value="">Selecione</option>
                     <?php foreach ($projects as $project): ?>
                         <option value="<?= (int)$project['id'] ?>">
-                            <?= htmlspecialchars($project['name']) ?> (<?= htmlspecialchars($project['privacy_mode']) ?>)
+                            <?= e($project['name']) ?> (<?= e($project['privacy_mode']) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>

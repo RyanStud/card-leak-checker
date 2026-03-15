@@ -3,9 +3,7 @@
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf_token'])) {
-        $seed = bin2hex(random_bytes(32));
-        $secret = (string) env('CSRF_SECRET', 'csrf_local_secret');
-        $_SESSION['csrf_token'] = hash_hmac('sha256', $seed, $secret);
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
     return $_SESSION['csrf_token'];
@@ -17,6 +15,7 @@ function verify_csrf(): void
 
     if (
         empty($_SESSION['csrf_token']) ||
+        !is_string($token) ||
         !hash_equals($_SESSION['csrf_token'], $token)
     ) {
         http_response_code(419);

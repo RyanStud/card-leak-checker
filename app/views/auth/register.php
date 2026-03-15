@@ -8,15 +8,15 @@
     <h1>Cadastro</h1>
 
     <?php if ($msg = flash('error')): ?>
-        <p style="color:red;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:red;"><?= e($msg) ?></p>
     <?php endif; ?>
 
     <?php if ($msg = flash('success')): ?>
-        <p style="color:green;"><?= htmlspecialchars($msg) ?></p>
+        <p style="color:green;"><?= e($msg) ?></p>
     <?php endif; ?>
 
-    <form method="POST" action="/card-leak-checker/public/register">
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+    <form method="POST" action="<?= e(base_path('/register')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
         <div>
             <label>Nome</label><br>
@@ -36,6 +36,6 @@
         <button type="submit">Cadastrar</button>
     </form>
 
-    <p><a href="/card-leak-checker/public/login">Já tenho conta</a></p>
+    <p><a href="<?= e(base_path('/login')) ?>">Já tenho conta</a></p>
 </body>
 </html>
