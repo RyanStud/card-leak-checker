@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    email_verified TINYINT(1) DEFAULT 1,
+    email_verified TINYINT(1) DEFAULT 0,
     two_factor_enabled TINYINT(1) DEFAULT 0,
     two_factor_secret VARCHAR(255) NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'user',
@@ -100,6 +100,21 @@ CREATE TABLE IF NOT EXISTS suspicious_events (
     event_type VARCHAR(80) NOT NULL,
     details TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_email_verifications_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS password_resets (

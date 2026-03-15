@@ -12,10 +12,19 @@ class User
     public function create(string $name, string $email, string $passwordHash): bool
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)'
+            'INSERT INTO users (name, email, password_hash, email_verified) VALUES (?, ?, ?, 0)'
         );
 
         return $stmt->execute([$name, $email, $passwordHash]);
+    }
+
+    public function markEmailAsVerified(int $userId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET email_verified = 1 WHERE id = ?'
+        );
+
+        return $stmt->execute([$userId]);
     }
 
     public function findByEmail(string $email): ?array
