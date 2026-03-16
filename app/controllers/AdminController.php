@@ -17,6 +17,9 @@ class AdminController extends Controller
         $topIps = $admin->getTopIps(10);
         $suspiciousTypes = $admin->getSuspiciousEventTypes();
         $recentCardChecks = $admin->getRecentCardChecks(20);
+        $blockedIps = $admin->getBlockedIps(20);
+        $recentRequests = $admin->getRecentRequests(30);
+        $topCountries = $admin->getTopCountries(10);
 
         $this->view('admin/dashboard', [
             'counts' => $counts,
@@ -27,6 +30,9 @@ class AdminController extends Controller
             'topIps' => $topIps,
             'suspiciousTypes' => $suspiciousTypes,
             'recentCardChecks' => $recentCardChecks,
+            'blockedIps' => $blockedIps,
+            'recentRequests' => $recentRequests,
+            'topCountries' => $topCountries,
         ]);
     }
 }

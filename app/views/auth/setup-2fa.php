@@ -12,8 +12,13 @@
     <?php endif; ?>
 
     <p>Conta: <strong><?= e($email) ?></strong></p>
-    <p>Adicione manualmente no Google Authenticator com esta chave:</p>
 
+    <h3>Escaneie o QR Code</h3>
+    <p>Abra o Google Authenticator e escaneie o código abaixo:</p>
+
+    <img src="<?= e($qrCodeUrl) ?>" alt="QR Code para MFA">
+
+    <p>Se preferir, adicione manualmente com esta chave:</p>
     <pre><?= e($secret) ?></pre>
 
     <p>URI TOTP:</p>

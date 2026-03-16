@@ -194,10 +194,12 @@ class AuthController extends Controller
         $_SESSION['temp_2fa_secret'] = $secret;
 
         $otpauth = generate_otpauth_uri($user['email'], $secret);
+        $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode($otpauth);
 
         $this->view('auth/setup-2fa', [
             'secret' => $secret,
             'otpauth' => $otpauth,
+            'qrCodeUrl' => $qrCodeUrl,
             'email' => $user['email'],
         ]);
     }

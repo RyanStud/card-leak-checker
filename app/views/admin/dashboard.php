@@ -43,6 +43,8 @@
         <div class="card"><strong>Tentativas de login</strong><br><?= (int)$counts['login_attempts'] ?></div>
         <div class="card"><strong>Eventos suspeitos</strong><br><?= (int)$counts['suspicious_events'] ?></div>
         <div class="card"><strong>Resets de senha</strong><br><?= (int)$counts['password_resets'] ?></div>
+        <div class="card"><strong>IPs bloqueados</strong><br><?= (int)$counts['blocked_ips'] ?></div>
+        <div class="card"><strong>Requisições</strong><br><?= (int)$counts['request_logs'] ?></div>
     </div>
 
     <h2>Usuários cadastrados</h2>
@@ -192,5 +194,74 @@
             </tr>
         <?php endforeach; ?>
     </table>
+    <h2>IPs bloqueados</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>IP</th>
+        <th>Motivo</th>
+        <th>Bloqueado até</th>
+        <th>Criado em</th>
+    </tr>
+    <?php foreach ($blockedIps as $row): ?>
+        <tr>
+            <td><?= (int)$row['id'] ?></td>
+            <td><?= e($row['ip_address']) ?></td>
+            <td class="danger"><?= e($row['reason']) ?></td>
+            <td><?= e($row['blocked_until'] ?? '-') ?></td>
+            <td><?= e($row['created_at']) ?></td>
+        </tr>
+    <?php endforeach; ?>
+</table>
+
+<h2>Mapa simplificado de ataques por país</h2>
+<table>
+    <tr>
+        <th>País</th>
+        <th>Total</th>
+        <th>Distribuição</th>
+    </tr>
+    <?php
+    $maxCountry = 1;
+    foreach ($topCountries as $countryRow) {
+        if ((int)$countryRow['total'] > $maxCountry) {
+            $maxCountry = (int)$countryRow['total'];
+        }
+    }
+    ?>
+    <?php foreach ($topCountries as $row): ?>
+        <tr>
+            <td><?= e($row['country'] ?? 'Unknown') ?></td>
+            <td><?= (int)$row['total'] ?></td>
+            <td>
+                <progress value="<?= (int)$row['total'] ?>" max="<?= $maxCountry ?>"></progress>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+</table>
+
+<h2>Requisições recentes</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>IP</th>
+        <th>URI</th>
+        <th>Método</th>
+        <th>País</th>
+        <th>User-Agent</th>
+        <th>Data</th>
+    </tr>
+    <?php foreach ($recentRequests as $row): ?>
+        <tr>
+            <td><?= (int)$row['id'] ?></td>
+            <td><?= e($row['ip_address']) ?></td>
+            <td><?= e($row['request_uri']) ?></td>
+            <td><?= e($row['request_method']) ?></td>
+            <td><?= e($row['country'] ?? 'Unknown') ?></td>
+            <td><span class="small"><?= e($row['user_agent'] ?? '-') ?></span></td>
+            <td><?= e($row['created_at']) ?></td>
+        </tr>
+    <?php endforeach; ?>
+</table>
 </body>
 </html>

@@ -19,30 +19,34 @@ class AdminDashboard
             'login_attempts' => $this->countTable('login_attempts'),
             'suspicious_events' => $this->countTable('suspicious_events'),
             'password_resets' => $this->countTable('password_resets'),
+            'blocked_ips' => $this->countTable('blocked_ips'),
+            'request_logs' => $this->countTable('request_logs'),
         ];
     }
 
-private function countTable(string $table): int
-{
-    $allowed = [
-        'users',
-        'projects',
-        'card_check_requests',
-        'audit_logs',
-        'login_attempts',
-        'suspicious_events',
-        'password_resets',
-    ];
+    private function countTable(string $table): int
+    {
+        $allowed = [
+            'users',
+            'projects',
+            'card_check_requests',
+            'audit_logs',
+            'login_attempts',
+            'suspicious_events',
+            'password_resets',
+            'blocked_ips',
+            'request_logs',
+        ];
 
-    if (!in_array($table, $allowed, true)) {
-        throw new InvalidArgumentException('Tabela inválida.');
+        if (!in_array($table, $allowed, true)) {
+            throw new InvalidArgumentException('Tabela inválida.');
+        }
+
+        $stmt = $this->pdo->query("SELECT COUNT(*) AS total FROM {$table}");
+        $row = $stmt->fetch();
+
+        return (int)($row['total'] ?? 0);
     }
-
-    $stmt = $this->pdo->query("SELECT COUNT(*) AS total FROM {$table}");
-    $row = $stmt->fetch();
-
-    return (int)($row['total'] ?? 0);
-}
 
     public function getRecentAuditLogs(int $limit = 20): array
     {
@@ -122,6 +126,49 @@ private function countTable(string $table): int
              LEFT JOIN users u ON u.id = ccr.user_id
              LEFT JOIN projects p ON p.id = ccr.project_id
              ORDER BY ccr.checked_at DESC
+             LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function getBlockedIps(int $limit = 20): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT *
+             FROM blocked_ips
+             ORDER BY created_at DESC
+             LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function getRecentRequests(int $limit = 30): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT *
+             FROM request_logs
+             ORDER BY created_at DESC
+             LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function getTopCountries(int $limit = 10): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT country, COUNT(*) AS total
+             FROM request_logs
+             GROUP BY country
+             ORDER BY total DESC
              LIMIT ?'
         );
         $stmt->bindValue(1, $limit, PDO::PARAM_INT);

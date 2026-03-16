@@ -21,7 +21,7 @@ if ($debug) {
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self';");
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self';");
 
 $sessionName = env('SESSION_NAME', 'cardleak_session');
 session_name($sessionName);
@@ -53,6 +53,7 @@ require __DIR__ . '/app/helpers/security_view.php';
 
 require __DIR__ . '/app/middleware/AuthMiddleware.php';
 require __DIR__ . '/app/middleware/AdminMiddleware.php';
+require __DIR__ . '/app/middleware/SecurityMiddleware.php';
 
 require __DIR__ . '/app/models/User.php';
 require __DIR__ . '/app/models/Project.php';
@@ -64,6 +65,7 @@ require __DIR__ . '/app/models/SuspiciousEvent.php';
 require __DIR__ . '/app/models/PasswordReset.php';
 require __DIR__ . '/app/models/EmailVerification.php';
 require __DIR__ . '/app/models/AdminDashboard.php';
+require __DIR__ . '/app/models/SecurityMonitor.php';
 
 require __DIR__ . '/app/controllers/AuthController.php';
 require __DIR__ . '/app/controllers/DashboardController.php';
@@ -71,6 +73,8 @@ require __DIR__ . '/app/controllers/ProjectController.php';
 require __DIR__ . '/app/controllers/CardController.php';
 require __DIR__ . '/app/controllers/PrivacyController.php';
 require __DIR__ . '/app/controllers/AdminController.php';
+
+SecurityMiddleware::handle();
 
 $router = new Router();
 

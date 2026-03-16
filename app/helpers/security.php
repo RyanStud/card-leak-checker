@@ -88,3 +88,43 @@ function client_ip(): string
 
     return '0.0.0.0';
 }
+
+function client_country(): string
+{
+    if (!empty($_SERVER['HTTP_CF_IPCOUNTRY'])) {
+        return trim((string)$_SERVER['HTTP_CF_IPCOUNTRY']);
+    }
+
+    if (!empty($_SERVER['GEOIP_COUNTRY_NAME'])) {
+        return trim((string)$_SERVER['GEOIP_COUNTRY_NAME']);
+    }
+
+    return 'Unknown';
+}
+
+function is_suspicious_path(string $uri): bool
+{
+    $patterns = [
+        '/\.env/i',
+        '/wp-admin/i',
+        '/wp-login/i',
+        '/phpmyadmin/i',
+        '/vendor/i',
+        '/composer\.json/i',
+        '/composer\.lock/i',
+        '/\.git/i',
+        '/adminer/i',
+        '/boaform/i',
+        '/shell/i',
+        '/config\.php/i',
+        '/setup\.php/i',
+    ];
+
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $uri) === 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
