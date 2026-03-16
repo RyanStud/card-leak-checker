@@ -91,15 +91,67 @@ function client_ip(): string
 
 function client_country(): string
 {
-    if (!empty($_SERVER['HTTP_CF_IPCOUNTRY'])) {
-        return trim((string)$_SERVER['HTTP_CF_IPCOUNTRY']);
+    $headerKeys = [
+        'HTTP_CF_IPCOUNTRY',
+        'HTTP_X_COUNTRY_CODE',
+        'HTTP_X_COUNTRY',
+        'HTTP_GEOIP_COUNTRY_CODE',
+        'HTTP_GEOIP_COUNTRY_NAME',
+        'GEOIP_COUNTRY_CODE',
+        'GEOIP_COUNTRY_NAME',
+    ];
+
+    foreach ($headerKeys as $key) {
+        if (!empty($_SERVER[$key])) {
+            $country = trim((string)$_SERVER[$key]);
+            if ($country !== '') {
+                return $country;
+            }
+        }
     }
 
-    if (!empty($_SERVER['GEOIP_COUNTRY_NAME'])) {
-        return trim((string)$_SERVER['GEOIP_COUNTRY_NAME']);
+    $ip = client_ip();
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        return 'Unknown';
     }
 
-    return 'Unknown';
+    if (
+        $ip === '127.0.0.1'
+        || $ip === '::1'
+        || str_starts_with($ip, '10.')
+        || str_starts_with($ip, '192.168.')
+        || preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $ip) === 1
+    ) {
+        return 'Local';
+    }
+
+    $country = lookup_country_by_ip($ip);
+    return $country ?: 'Unknown';
+}
+
+function lookup_country_by_ip(string $ip): ?string
+{
+    $url = 'https://ipwho.is/' . rawurlencode($ip);
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 1,
+            'ignore_errors' => true,
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) {
+        return null;
+    }
+
+    $data = json_decode($response, true);
+    if (!is_array($data) || !($data['success'] ?? false)) {
+        return null;
+    }
+
+    $country = trim((string)($data['country'] ?? ''));
+    return $country !== '' ? $country : null;
 }
 
 function is_suspicious_path(string $uri): bool
