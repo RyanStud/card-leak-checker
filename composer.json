@@ -1,0 +1,39 @@
+{
+    "name": "card-leak-checker/card-leak-checker",
+    "description": "Demo MVC PHP application for card leak checks with authentication, 2FA, and auditing.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-hash": "*"
+    },
+    "autoload": {
+        "classmap": [
+            "app/controllers/",
+            "app/core/",
+            "app/middleware/",
+            "app/models/"
+        ],
+        "files": [
+            "app/helpers/auth.php",
+            "app/helpers/csrf.php",
+            "app/helpers/env.php",
+            "app/helpers/logger.php",
+            "app/helpers/mailer.php",
+            "app/helpers/otp.php",
+            "app/helpers/security.php",
+            "app/helpers/security_view.php",
+            "app/helpers/url.php",
+            "app/helpers/view.php"
+        ]
+    },
+    "scripts": {
+        "generate-secrets": "php generate-secrets.php"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
