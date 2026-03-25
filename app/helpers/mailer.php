@@ -19,7 +19,7 @@ function send_demo_mail(string $to, string $subject, string $body): bool
 
 function send_mailtrap_api_mail(string $to, string $subject, string $body): bool
 {
-    $token = (string) env('MAILTRAP_API_TOKEN', '');
+    $token = (string) required_secret('MAILTRAP_API_TOKEN');
     $fromEmail = (string) env('MAIL_FROM', 'no-reply@example.com');
     $fromName = (string) env('MAIL_FROM_NAME', 'Card Leak Checker');
 

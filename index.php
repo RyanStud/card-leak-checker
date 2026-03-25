@@ -3,18 +3,23 @@
 require __DIR__ . '/app/core/Env.php';
 Env::load(__DIR__ . '/.env');
 
+require __DIR__ . '/app/core/SecretManager.php';
+require __DIR__ . '/app/core/Config.php';
+
 require __DIR__ . '/app/helpers/env.php';
 require __DIR__ . '/app/helpers/url.php';
+
+Config::init();
 
 $debug = filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOL);
 
 if ($debug) {
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
     error_reporting(E_ALL);
 } else {
-    ini_set('display_errors', 0);
-    ini_set('display_startup_errors', 0);
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
     error_reporting(0);
 }
 
@@ -36,6 +41,7 @@ session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Strict',
 ]);
+
 session_start();
 
 require __DIR__ . '/app/core/Database.php';

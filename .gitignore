@@ -3,3 +3,6 @@
 /storage/logs/*.log
 .DS_Store
 Thumbs.db
+
+/config/secrets.json
+/config/secrets.enc
