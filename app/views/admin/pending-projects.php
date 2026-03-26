@@ -3,39 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
+    <link rel="stylesheet" href="<?= e(base_path('/public/assets/css/theme.css')) ?>">
     <title>Admin - Aprovar Projetos</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .nav a { margin-right: 12px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
-        th { background: #efefef; }
-        .justification { max-width: 400px; word-wrap: break-word; }
-        .actions { display: flex; gap: 8px; }
-        .actions button { padding: 4px 8px; font-size: 12px; }
-        .approve { background: #28a745; color: white; border: none; cursor: pointer; }
-        .reject { background: #dc3545; color: white; border: none; cursor: pointer; }
-        .no-pending { color: #666; font-style: italic; }
-        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
-        .modal.show { display: block; }
-        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; }
-        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-        .modal-buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
-        .modal-buttons button { padding: 8px 16px; cursor: pointer; }
-        .modal-buttons .cancel { background: #6c757d; color: white; border: none; }
-        .modal-buttons .confirm { background: #dc3545; color: white; border: none; }
-        textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-    </style>
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/navbar.php'; ?>
     <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Admin - Aprovar Projetos</h1>
-
-    <p class="nav">
-        <a href="<?= e(base_path('/admin')) ?>">Dashboard</a> |
-        <a href="<?= e(base_path('/projects/approval-history')) ?>">Histórico</a> |
-        <a href="<?= e(base_path('/dashboard')) ?>">Meu Dashboard</a>
-    </p>
 
     <?php if ($msg = flash('error')): ?>
         <p style="color:red;"><?= e($msg) ?></p>

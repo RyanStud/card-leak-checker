@@ -3,34 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
+    <link rel="stylesheet" href="<?= e(base_path('/public/assets/css/theme.css')) ?>">
     <title>Admin - Histórico de Aprovações</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .nav a { margin-right: 12px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 16px; margin-bottom: 24px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
-        th { background: #efefef; }
-        .status-approved { color: green; font-weight: bold; }
-        .status-rejected { color: red; font-weight: bold; }
-        .pagination { text-align: center; margin: 20px 0; }
-        .pagination a, .pagination span { margin: 0 5px; padding: 5px 10px; border: 1px solid #ccc; text-decoration: none; }
-        .pagination a { background: #f5f5f5; cursor: pointer; }
-        .pagination a:hover { background: #e0e0e0; }
-        .pagination .active { background: #333; color: white; }
-        .no-history { color: #666; font-style: italic; }
-        .rejection-reason { color: #b00020; margin-top: 8px; }
-        .info-row { font-size: 12px; color: #555; }
-    </style>
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/navbar.php'; ?>
     <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Admin - Histórico de Aprovações</h1>
-
-    <p class="nav">
-        <a href="<?= e(base_path('/admin')) ?>">Dashboard</a> |
-        <a href="<?= e(base_path('/projects/approval')) ?>">Pendências</a> |
-        <a href="<?= e(base_path('/dashboard')) ?>">Meu Dashboard</a>
-    </p>
 
     <?php if ($msg = flash('error')): ?>
         <p style="color:red;"><?= e($msg) ?></p>

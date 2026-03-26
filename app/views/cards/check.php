@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
+    <link rel="stylesheet" href="<?= e(base_path('/public/assets/css/theme.css')) ?>">
     <title>Verificar cartão</title>
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/navbar.php'; ?>
     <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Verificação de possível vazamento</h1>
-
-    <p>
-        <a href="<?= e(base_path('/dashboard')) ?>">Dashboard</a> |
-        <a href="<?= e(base_path('/projects')) ?>">Projetos</a> |
-        <a href="<?= e(base_path('/cards/history')) ?>">Histórico</a>
-    </p>
 
     <?php if ($msg = flash('error')): ?>
         <p style="color:red;"><?= e($msg) ?></p>
