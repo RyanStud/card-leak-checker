@@ -63,13 +63,23 @@ class User
         return $stmt->execute([$passwordHash, $userId]);
     }
 
-    public function getAllUsers(): array
+    public function getAllUsers(?string $since = null): array
     {
-        $stmt = $this->pdo->query(
-            'SELECT id, name, email, role, email_verified, two_factor_enabled, created_at
-             FROM users
-             ORDER BY created_at DESC'
-        );
+        if ($since !== null) {
+            $stmt = $this->pdo->prepare(
+                'SELECT id, name, email, role, email_verified, two_factor_enabled, created_at
+                 FROM users
+                 WHERE created_at >= ?
+                 ORDER BY created_at DESC'
+            );
+            $stmt->execute([$since]);
+        } else {
+            $stmt = $this->pdo->query(
+                'SELECT id, name, email, role, email_verified, two_factor_enabled, created_at
+                 FROM users
+                 ORDER BY created_at DESC'
+            );
+        }
 
         return $stmt->fetchAll();
     }

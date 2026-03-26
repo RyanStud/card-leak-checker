@@ -18,4 +18,19 @@ class SuspiciousEvent
 
         return $stmt->execute([$userId, $email, $ipAddress, $eventType, $details]);
     }
+
+    public function countRecentByIpAndType(string $ipAddress, string $eventType, int $minutes = 15): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) AS total
+             FROM suspicious_events
+             WHERE ip_address = ?
+               AND event_type = ?
+               AND created_at >= (NOW() - INTERVAL ? MINUTE)'
+        );
+        $stmt->execute([$ipAddress, $eventType, $minutes]);
+        $row = $stmt->fetch();
+
+        return (int)($row['total'] ?? 0);
+    }
 }

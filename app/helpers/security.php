@@ -73,20 +73,75 @@ function demo_card_leak_check(string $digits): string
 
 function client_ip(): string
 {
-    $keys = [
-        'HTTP_CF_CONNECTING_IP',
-        'HTTP_X_FORWARDED_FOR',
-        'REMOTE_ADDR',
-    ];
+    $remoteAddr = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    if (!filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
+        return '0.0.0.0';
+    }
 
-    foreach ($keys as $key) {
-        if (!empty($_SERVER[$key])) {
-            $value = explode(',', $_SERVER[$key])[0];
-            return trim($value);
+    if (!is_trusted_proxy_ip($remoteAddr)) {
+        return $remoteAddr;
+    }
+
+    $cfIp = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+    if (filter_var($cfIp, FILTER_VALIDATE_IP)) {
+        return $cfIp;
+    }
+
+    $forwardedFor = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+    if ($forwardedFor !== '') {
+        $ips = array_map('trim', explode(',', $forwardedFor));
+
+        foreach ($ips as $ip) {
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
         }
     }
 
-    return '0.0.0.0';
+    return $remoteAddr;
+}
+
+function is_trusted_proxy_ip(string $ip): bool
+{
+    $trusted = trim((string)env('TRUSTED_PROXIES', ''));
+    if ($trusted === '') {
+        return false;
+    }
+
+    $entries = array_filter(array_map('trim', explode(',', $trusted)));
+
+    foreach ($entries as $entry) {
+        if ($entry === $ip) {
+            return true;
+        }
+
+        if (str_contains($entry, '/') && ip_matches_cidr($ip, $entry)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function ip_matches_cidr(string $ip, string $cidr): bool
+{
+    [$subnet, $maskBits] = array_pad(explode('/', $cidr, 2), 2, null);
+
+    if ($subnet === null || $maskBits === null || !is_numeric($maskBits)) {
+        return false;
+    }
+
+    $mask = (int)$maskBits;
+    $ipLong = ip2long($ip);
+    $subnetLong = ip2long($subnet);
+
+    if ($ipLong === false || $subnetLong === false || $mask < 0 || $mask > 32) {
+        return false;
+    }
+
+    $maskLong = $mask === 0 ? 0 : (-1 << (32 - $mask));
+
+    return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
 }
 
 function client_country(): string

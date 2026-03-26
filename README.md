@@ -101,9 +101,9 @@ app/
  ├── controllers/   # Lógica de controle e rotas
  ├── models/        # Acesso a dados e regras de negócio
  ├── views/         # Templates HTML/PHP
- ├── helpers/       # Funções utilitárias (CSRF, logger, mailer...)
- ├── middleware/    # Autenticação e autorização
- └── core/          # Roteador, banco de dados, base do framework
+ ├── helpers/       # Funções utilitárias (CSRF, segurança, OTP, logger...)
+ ├── middleware/    # Autenticação, autorização e monitoramento de segurança
+ └── core/          # Roteador, banco de dados, env/config e segredos
 ```
 
 ---
@@ -112,6 +112,12 @@ app/
 
 ```
 card-leak-checker/
+│
+├── composer.json
+├── generate-secrets.php
+├── index.php
+├── README.md
+├── robots.txt
 │
 ├── app/
 │   ├── controllers/
@@ -123,50 +129,71 @@ card-leak-checker/
 │   │   └── AdminController.php
 │   │
 │   ├── core/
-│   │   ├── Router.php
-│   │   ├── Database.php
+│   │   ├── Config.php
 │   │   ├── Controller.php
-│   │   └── Env.php
+│   │   ├── Database.php
+│   │   ├── Env.php
+│   │   ├── Router.php
+│   │   └── SecretManager.php
 │   │
 │   ├── helpers/
 │   │   ├── auth.php
 │   │   ├── csrf.php
+│   │   ├── env.php
 │   │   ├── logger.php
 │   │   ├── mailer.php
 │   │   ├── otp.php
 │   │   ├── security.php
 │   │   ├── security_view.php
+│   │   ├── url.php
 │   │   └── view.php
 │   │
 │   ├── middleware/
+│   │   ├── AdminMiddleware.php
 │   │   ├── AuthMiddleware.php
-│   │   └── AdminMiddleware.php
+│   │   └── SecurityMiddleware.php
 │   │
 │   ├── models/
-│   │   ├── User.php
-│   │   ├── Project.php
-│   │   ├── CardCheckRequest.php
+│   │   ├── AdminDashboard.php
 │   │   ├── AuditLog.php
+│   │   ├── CardCheckRequest.php
+│   │   ├── EmailVerification.php
 │   │   ├── LoginAttempt.php
-│   │   ├── SuspiciousEvent.php
 │   │   ├── PasswordReset.php
 │   │   ├── Privacy.php
-│   │   └── AdminDashboard.php
+│   │   ├── Project.php
+│   │   ├── SecurityMonitor.php
+│   │   ├── SuspiciousEvent.php
+│   │   └── User.php
 │   │
 │   └── views/
+│       ├── admin/
+│       ├── auth/
+│       ├── cards/
+│       ├── dashboard/
+│       ├── partials/
+│       ├── privacy/
+│       └── projects/
 │
 ├── config/
-│   └── database.php
+│   ├── database.php
+│   ├── secrets.enc
+│   ├── secrets.json
+│   └── secrets.json.example
 │
 ├── database/
-│   └── schema.sql
+│   ├── schema.sql
+│   └── sync_schema.sql
+│
+├── public/
+│   ├── assets/
+│   │   ├── icons/
+│   │   └── images/
+│   └── js/
+│       └── reject-modal.js
 │
 ├── storage/
 │   └── logs/
-│
-├── index.php
-├── .env
-└── .htaccess
 ```
 
 ---
@@ -276,6 +303,23 @@ Tabela `suspicious_events` registra:
 - Tipo de evento
 - Metadata adicional
 
+Tipos de eventos atualmente detectados:
+
+- `global_rate_limit_exceeded`
+- `scanner_path_detected`
+- `rate_limit_triggered`
+- `credential_stuffing_suspected`
+- `invalid_2fa_code`
+- `session_hijack_suspected`
+- `privilege_escalation_attempt`
+- `admin_access_denied_repeated`
+- `password_reset_abuse`
+- `suspicious_method_abuse`
+
+Evento auxiliar para análise de abuso de reset:
+
+- `password_reset_request`
+
 ### Content Security Policy
 
 Headers de segurança configurados:
@@ -286,6 +330,42 @@ X-Frame-Options
 X-Content-Type-Options
 Referrer-Policy
 ```
+
+### HTTPS obrigatório e HSTS
+
+Em produção, a aplicação força redirecionamento para HTTPS e envia HSTS:
+
+- Redirect `http -> https` com status `301`
+- Header `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+
+Isso reduz risco de downgrade/ssl-stripping e garante transporte seguro para sessões e autenticação.
+
+### Cadeia de IP com proxy confiável
+
+O IP real do cliente é aceito de headers (`CF-Connecting-IP` e `X-Forwarded-For`) **apenas** quando o `REMOTE_ADDR` pertence a um proxy explicitamente confiável (`TRUSTED_PROXIES`).
+
+Sem proxy confiável configurado, o sistema usa somente `REMOTE_ADDR`, evitando spoofing de IP por headers forjados.
+
+### Criptografia de segredos
+
+Credenciais sensíveis podem ser armazenadas em `config/secrets.enc`, gerado a partir de `config/secrets.json` com:
+
+- `AES-256-GCM`
+- IV aleatório
+- tag de autenticação GCM
+- chave derivada de `SECRET_MASTER_KEY` (`SHA-256` binário)
+
+Arquivo utilizado no runtime:
+
+- `app/core/SecretManager.php` (descriptografia e leitura)
+- `generate-secrets.php` (criptografia e geração de `secrets.enc`)
+
+Fluxo recomendado:
+
+1. Criar/atualizar `config/secrets.json` localmente.
+2. Definir `SECRET_MASTER_KEY` no ambiente do servidor.
+3. Executar `php generate-secrets.php` para gerar `config/secrets.enc`.
+4. Remover `config/secrets.json` do ambiente de produção.
 
 ### Cookies seguros
 
@@ -351,12 +431,28 @@ APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://clonacartao.online
 
+# Segurança de transporte
+FORCE_HTTPS=true
+
+# Proxies confiáveis (IP ou CIDR, separados por vírgula)
+TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
+
+# Sessão
+SESSION_NAME=cardleak_session
+SESSION_IDLE_TIMEOUT=3600
+
+# Segredos criptografados
+SECRETS_FILE=config/secrets.enc
+MASTER_KEY_FILE=../cardleak.masterkey
+
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=card_leak_checker
-DB_USER=root
-DB_PASS=
 ```
+
+Observação importante:
+
+- `DB_USER` e `DB_PASS` podem ser carregados de `config/secrets.enc` (via `required_secret()`), em vez de ficarem expostos no `.env`.
 
 ## 11. Hospedagem e serviços 
 

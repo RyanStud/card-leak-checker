@@ -22,6 +22,10 @@
         .danger { color: #b00020; font-weight: bold; }
         .ok { color: #106b21; font-weight: bold; }
         .small { font-size: 12px; color: #555; }
+        .filter-form { margin: 16px 0 20px; }
+        .filter-form label { margin-right: 8px; }
+        .filter-form select { padding: 4px 8px; }
+        .filter-form button { padding: 5px 10px; }
     </style>
 </head>
 <body>
@@ -37,6 +41,20 @@
         <a href="<?= e(base_path('/cards/history')) ?>">Histórico</a>
         <a href="<?= e(base_path('/privacy')) ?>">Privacidade / LGPD</a>
     </p>
+
+    <form class="filter-form" method="GET" action="<?= e(base_path('/admin')) ?>">
+        <label for="range"><strong>Período de exibição:</strong></label>
+        <select id="range" name="range">
+            <?php foreach ($allowedRanges as $key => $range): ?>
+                <option value="<?= e($key) ?>" <?= $selectedRange === $key ? 'selected' : '' ?>>
+                    <?= e($range['label']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <button type="submit">Aplicar</button>
+    </form>
+
+    <p class="small">Exibindo dados de: <strong><?= e($allowedRanges[$selectedRange]['label'] ?? '') ?></strong></p>
 
     <h2>Visão geral</h2>
     <div class="cards">

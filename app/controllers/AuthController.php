@@ -226,6 +226,8 @@ class AuthController extends Controller
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['two_factor_verified'] = true;
+        $_SESSION['session_ip'] = client_ip();
+        $_SESSION['session_ua_hash'] = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '-'));
 
         unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email'], $_SESSION['temp_2fa_secret']);
 
@@ -278,6 +280,8 @@ class AuthController extends Controller
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['two_factor_verified'] = true;
+        $_SESSION['session_ip'] = client_ip();
+        $_SESSION['session_ua_hash'] = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '-'));
 
         unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email']);
 
@@ -296,6 +300,35 @@ class AuthController extends Controller
         verify_csrf();
 
         $email = clean_email($_POST['email'] ?? '');
+        $ip = client_ip();
+        $suspiciousModel = new SuspiciousEvent();
+
+        $recentResetRequests = $suspiciousModel->countRecentByIpAndType($ip, 'password_reset_request', 15);
+
+        $suspiciousModel->create(
+            null,
+            $email !== '' ? $email : null,
+            $ip,
+            'password_reset_request',
+            json_encode([
+                'window_minutes' => 15,
+                'recent_requests_before_current' => $recentResetRequests,
+            ], JSON_UNESCAPED_UNICODE)
+        );
+
+        if ($recentResetRequests >= 5) {
+            $suspiciousModel->create(
+                null,
+                $email !== '' ? $email : null,
+                $ip,
+                'password_reset_abuse',
+                json_encode([
+                    'window_minutes' => 15,
+                    'recent_requests_before_current' => $recentResetRequests,
+                ], JSON_UNESCAPED_UNICODE)
+            );
+        }
+
         $userModel = new User();
         $user = $userModel->findByEmail($email);
 

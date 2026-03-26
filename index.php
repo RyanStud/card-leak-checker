@@ -12,6 +12,7 @@ require __DIR__ . '/app/helpers/url.php';
 Config::init();
 
 $debug = filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOL);
+$appEnv = (string) env('APP_ENV', 'production');
 
 if ($debug) {
     ini_set('display_errors', '1');
@@ -23,15 +24,74 @@ if ($debug) {
     error_reporting(0);
 }
 
+$remoteAddr = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+$trustedProxiesRaw = (string)env('TRUSTED_PROXIES', '');
+$trustedProxies = array_filter(array_map('trim', explode(',', $trustedProxiesRaw)));
+
+$ipMatchesCidr = static function (string $ip, string $cidr): bool {
+    [$subnet, $maskBits] = array_pad(explode('/', $cidr, 2), 2, null);
+
+    if ($subnet === null || $maskBits === null || !is_numeric($maskBits)) {
+        return false;
+    }
+
+    $mask = (int)$maskBits;
+    $ipLong = ip2long($ip);
+    $subnetLong = ip2long($subnet);
+
+    if ($ipLong === false || $subnetLong === false || $mask < 0 || $mask > 32) {
+        return false;
+    }
+
+    $maskLong = $mask === 0 ? 0 : (-1 << (32 - $mask));
+    return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
+};
+
+$isFromTrustedProxy = false;
+foreach ($trustedProxies as $entry) {
+    if ($entry === $remoteAddr) {
+        $isFromTrustedProxy = true;
+        break;
+    }
+
+    if (str_contains($entry, '/') && $ipMatchesCidr($remoteAddr, $entry)) {
+        $isFromTrustedProxy = true;
+        break;
+    }
+}
+
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+if (!$isHttps && $isFromTrustedProxy) {
+    $forwardedProto = strtolower(trim((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')));
+    $cfVisitor = (string)($_SERVER['HTTP_CF_VISITOR'] ?? '');
+
+    if ($forwardedProto === 'https' || str_contains($cfVisitor, '"https"')) {
+        $isHttps = true;
+    }
+}
+
+$forceHttps = filter_var(env('FORCE_HTTPS', $appEnv === 'production'), FILTER_VALIDATE_BOOL);
+if ($forceHttps && !$isHttps && !headers_sent()) {
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+
+    if ($host !== '') {
+        header('Location: https://' . $host . $uri, true, 301);
+        exit;
+    }
+}
+
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self';");
 
+if ($isHttps) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+
 $sessionName = env('SESSION_NAME', 'cardleak_session');
 session_name($sessionName);
-
-$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 
 session_set_cookie_params([
     'lifetime' => 0,
