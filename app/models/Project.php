@@ -25,6 +25,101 @@ class Project
         return $created;
     }
 
+    public function createWithJustification(string $name, string $slug, int $ownerUserId, string $privacyMode, string $justification): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO projects (name, slug, owner_user_id, privacy_mode, justification, approval_status) 
+             VALUES (?, ?, ?, ?, ?, ?)'
+        );
+
+        $created = $stmt->execute([$name, $slug, $ownerUserId, $privacyMode, $justification, 'pending']);
+
+        if ($created) {
+            $projectId = (int)$this->pdo->lastInsertId();
+            $this->addMember($projectId, $ownerUserId, 'owner');
+        }
+
+        return $created;
+    }
+
+    public function getPendingProjects(): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.*, u.email, u.name 
+             FROM projects p
+             INNER JOIN users u ON u.id = p.owner_user_id
+             WHERE p.approval_status = ?
+             ORDER BY p.created_at ASC'
+        );
+
+        $stmt->execute(['pending']);
+        return $stmt->fetchAll();
+    }
+
+    public function getApprovalHistory(int $limit = 50, int $offset = 0): array
+    {
+        $limit = max(1, min($limit, 1000));
+        $offset = max(0, $offset);
+
+        $stmt = $this->pdo->prepare(
+            'SELECT 
+                p.id,
+                p.name,
+                p.approval_status,
+                p.justification,
+                p.created_at as project_created_at,
+                p.approved_at,
+                p.rejection_reason,
+                u_owner.name as owner_name,
+                u_owner.email as owner_email,
+                u_admin.name as admin_name,
+                u_admin.email as admin_email
+             FROM projects p
+             INNER JOIN users u_owner ON u_owner.id = p.owner_user_id
+             LEFT JOIN users u_admin ON u_admin.id = p.approved_by
+             WHERE p.approval_status IN (?, ?)
+             ORDER BY COALESCE(p.approved_at, p.created_at) DESC
+             LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset
+        );
+
+        $stmt->execute(['approved', 'rejected']);
+        return $stmt->fetchAll();
+    }
+
+    public function getApprovalHistoryCount(): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) as total FROM projects WHERE approval_status IN (?, ?)'
+        );
+
+        $stmt->execute(['approved', 'rejected']);
+        $result = $stmt->fetch();
+
+        return (int)($result['total'] ?? 0);
+    }
+
+    public function approveProject(int $projectId, int $approvedByUserId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE projects 
+             SET approval_status = ?, approved_at = NOW(), approved_by = ?
+             WHERE id = ?'
+        );
+
+        return $stmt->execute(['approved', $approvedByUserId, $projectId]);
+    }
+
+    public function rejectProject(int $projectId, int $rejectedByUserId, string $rejectionReason = ''): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE projects 
+             SET approval_status = ?, approved_at = NOW(), approved_by = ?, rejection_reason = ?
+             WHERE id = ?'
+        );
+
+        return $stmt->execute(['rejected', $rejectedByUserId, $rejectionReason, $projectId]);
+    }
+
     public function addMember(int $projectId, int $userId, string $role = 'member'): bool
     {
         $stmt = $this->pdo->prepare(

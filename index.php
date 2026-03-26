@@ -112,6 +112,11 @@ $router->get('/dashboard', [DashboardController::class, 'index']);
 
 $router->get('/projects', [ProjectController::class, 'index']);
 $router->post('/projects', [ProjectController::class, 'create']);
+$router->post('/projects/share', [ProjectController::class, 'share']);
+$router->get('/projects/approval', [ProjectController::class, 'approval']);
+$router->get('/projects/approval-history', [ProjectController::class, 'approval_history']);
+$router->post('/projects/approve', [ProjectController::class, 'approve']);
+$router->post('/projects/reject', [ProjectController::class, 'reject']);
 
 $router->get('/check-card', [CardController::class, 'showForm']);
 $router->post('/check-card', [CardController::class, 'check']);

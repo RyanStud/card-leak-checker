@@ -2,9 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
     <title>Verificar cartão</title>
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Verificação de possível vazamento</h1>
 
     <p>
@@ -39,8 +41,23 @@
                 <select name="project_id" required>
                     <option value="">Selecione</option>
                     <?php foreach ($projects as $project): ?>
-                        <option value="<?= (int)$project['id'] ?>">
-                            <?= e($project['name']) ?> (<?= e($project['privacy_mode']) ?>)
+                        <?php
+                            $status = $project['approval_status'] ?? 'pending';
+                            $statusText = '';
+                            $disabled = false;
+                            
+                            if ($status === 'approved') {
+                                $statusText = ' ✓ Aprovado';
+                            } elseif ($status === 'pending') {
+                                $statusText = ' ⏳ Pendente';
+                                $disabled = true;
+                            } elseif ($status === 'rejected') {
+                                $statusText = ' ✗ Rejeitado';
+                                $disabled = true;
+                            }
+                        ?>
+                        <option value="<?= (int)$project['id'] ?>" <?= $disabled ? 'disabled' : '' ?>>
+                            <?= e($project['name']) ?> (<?= e($project['privacy_mode']) ?>)<?= $statusText ?>
                         </option>
                     <?php endforeach; ?>
                 </select>

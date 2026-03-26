@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
     <title>Admin - Dashboard de Segurança</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
@@ -24,11 +25,14 @@
     </style>
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Admin - Dashboard de Segurança</h1>
 
     <p class="nav">
         <a href="<?= e(base_path('/dashboard')) ?>">Dashboard</a>
         <a href="<?= e(base_path('/projects')) ?>">Projetos</a>
+        <a href="<?= e(base_path('/projects/approval')) ?>">Aprovações</a>
+        <a href="<?= e(base_path('/projects/approval-history')) ?>">Histórico</a>
         <a href="<?= e(base_path('/check-card')) ?>">Verificar cartão</a>
         <a href="<?= e(base_path('/cards/history')) ?>">Histórico</a>
         <a href="<?= e(base_path('/privacy')) ?>">Privacidade / LGPD</a>

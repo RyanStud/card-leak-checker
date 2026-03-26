@@ -2,9 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
     <title>Login</title>
 </head>
 <body>
+    <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Login</h1>
 
     <?php if ($msg = flash('error')): ?>

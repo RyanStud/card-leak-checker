@@ -29,6 +29,23 @@ class CardController extends Controller
             $this->redirect(base_path('/check-card'));
         }
 
+        $project = $projectModel->findById($projectId);
+
+        if (!$project) {
+            set_flash('error', 'Projeto não encontrado.');
+            $this->redirect(base_path('/check-card'));
+        }
+
+        if ($project['approval_status'] !== 'approved') {
+            if ($project['approval_status'] === 'pending') {
+                set_flash('error', 'Este projeto ainda está aguardando aprovação do administrador. Você não poderá fazer verificações até que seja aprovado.');
+            } elseif ($project['approval_status'] === 'rejected') {
+                $reason = $project['rejection_reason'] ?? 'Não informado';
+                set_flash('error', 'Este projeto foi rejeitado pelo administrador. Motivo: ' . e($reason));
+            }
+            $this->redirect(base_path('/check-card'));
+        }
+
         $digits = card_digits_only($cardNumber);
 
         if (!looks_like_valid_card($digits)) {
