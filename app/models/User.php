@@ -63,6 +63,58 @@ class User
         return $stmt->execute([$passwordHash, $userId]);
     }
 
+    public function findByCpf(string $cpfDigits): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE cpf = ? LIMIT 1');
+        $stmt->execute([$cpfDigits]);
+        $user = $stmt->fetch();
+
+        return $user ?: null;
+    }
+
+    public function updateProfile(
+        int $userId,
+        string $name,
+        ?string $cpf,
+        ?string $jobTitle,
+        ?string $cep,
+        ?string $addressStreet,
+        ?string $addressNumber,
+        ?string $addressComplement,
+        ?string $addressNeighborhood,
+        ?string $addressCity,
+        ?string $addressState
+    ): bool {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users
+             SET name = ?,
+                 cpf = ?,
+                 job_title = ?,
+                 cep = ?,
+                 address_street = ?,
+                 address_number = ?,
+                 address_complement = ?,
+                 address_neighborhood = ?,
+                 address_city = ?,
+                 address_state = ?
+             WHERE id = ?'
+        );
+
+        return $stmt->execute([
+            $name,
+            $cpf,
+            $jobTitle,
+            $cep,
+            $addressStreet,
+            $addressNumber,
+            $addressComplement,
+            $addressNeighborhood,
+            $addressCity,
+            $addressState,
+            $userId,
+        ]);
+    }
+
     public function getAllUsers(?string $since = null): array
     {
         if ($since !== null) {

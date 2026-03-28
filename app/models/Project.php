@@ -170,4 +170,29 @@ class Project
 
         return (bool)$stmt->fetch();
     }
+
+    public function getMembersByProjectId(int $projectId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT pm.project_id, pm.user_id, pm.role, u.name, u.email
+             FROM project_memberships pm
+             INNER JOIN users u ON u.id = pm.user_id
+             WHERE pm.project_id = ?
+             ORDER BY FIELD(pm.role, "owner", "admin", "member"), u.name ASC'
+        );
+
+        $stmt->execute([$projectId]);
+
+        return $stmt->fetchAll();
+    }
+
+    public function removeMember(int $projectId, int $userId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM project_memberships
+             WHERE project_id = ? AND user_id = ? AND role <> "owner"'
+        );
+
+        return $stmt->execute([$projectId, $userId]);
+    }
 }

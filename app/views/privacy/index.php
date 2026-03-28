@@ -22,14 +22,55 @@
     <h2>Dados do usuário no sistema</h2>
 
     <?php if (!empty($profile)): ?>
-        <ul>
-            <li><strong>ID:</strong> <?= (int)$profile['id'] ?></li>
-            <li><strong>Nome:</strong> <?= e($profile['name']) ?></li>
-            <li><strong>E-mail:</strong> <?= e($profile['email']) ?></li>
-            <li><strong>E-mail verificado:</strong> <?= !empty($profile['email_verified']) ? 'Sim' : 'Não' ?></li>
-            <li><strong>2FA ativo:</strong> <?= !empty($profile['two_factor_enabled']) ? 'Sim' : 'Não' ?></li>
-            <li><strong>Criado em:</strong> <?= e($profile['created_at']) ?></li>
-        </ul>
+        <?php
+            $labels = [
+                'id' => 'ID',
+                'name' => 'Nome',
+                'email' => 'E-mail',
+                'cpf' => 'CPF',
+                'job_title' => 'Trabalho',
+                'cep' => 'CEP',
+                'address_street' => 'Logradouro',
+                'address_number' => 'Numero',
+                'address_complement' => 'Complemento',
+                'address_neighborhood' => 'Bairro',
+                'address_city' => 'Cidade',
+                'address_state' => 'UF',
+                'role' => 'Papel',
+                'email_verified' => 'E-mail verificado',
+                'two_factor_enabled' => '2FA ativo',
+                'two_factor_secret' => 'Segredo 2FA',
+                'password_hash' => 'Hash da senha',
+                'created_at' => 'Criado em',
+                'updated_at' => 'Atualizado em',
+            ];
+
+            $sensitiveFields = ['password_hash', 'two_factor_secret'];
+        ?>
+
+        <table>
+            <tr>
+                <th>Campo</th>
+                <th>Valor armazenado</th>
+            </tr>
+            <?php foreach ($profile as $field => $rawValue): ?>
+                <?php
+                    $displayLabel = $labels[$field] ?? strtoupper(str_replace('_', ' ', $field));
+
+                    if (in_array($field, $sensitiveFields, true)) {
+                        $displayValue = !empty($rawValue) ? 'definido (valor oculto)' : 'nao definido';
+                    } elseif ($field === 'email_verified' || $field === 'two_factor_enabled') {
+                        $displayValue = !empty($rawValue) ? 'Sim' : 'Nao';
+                    } else {
+                        $displayValue = ($rawValue === null || $rawValue === '') ? 'nao informado' : (string)$rawValue;
+                    }
+                ?>
+                <tr>
+                    <td><strong><?= e($displayLabel) ?></strong></td>
+                    <td><?= e($displayValue) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
     <?php endif; ?>
 
     <h2>Resumo de dados</h2>

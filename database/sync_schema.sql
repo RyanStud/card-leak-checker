@@ -11,8 +11,17 @@ USE u870812724_card_leak_chec;
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
+    cpf CHAR(11) NULL UNIQUE,
     email VARCHAR(150) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    job_title VARCHAR(120) NULL,
+    cep CHAR(8) NULL,
+    address_street VARCHAR(150) NULL,
+    address_number VARCHAR(20) NULL,
+    address_complement VARCHAR(120) NULL,
+    address_neighborhood VARCHAR(120) NULL,
+    address_city VARCHAR(120) NULL,
+    address_state CHAR(2) NULL,
     email_verified TINYINT(1) DEFAULT 0,
     two_factor_enabled TINYINT(1) DEFAULT 0,
     two_factor_secret VARCHAR(255) NULL,
@@ -170,4 +179,14 @@ ALTER TABLE projects
 
 -- Alinha default com o schema atual
 ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS cpf CHAR(11) NULL AFTER name,
+    ADD COLUMN IF NOT EXISTS job_title VARCHAR(120) NULL AFTER password_hash,
+    ADD COLUMN IF NOT EXISTS cep CHAR(8) NULL AFTER job_title,
+    ADD COLUMN IF NOT EXISTS address_street VARCHAR(150) NULL AFTER cep,
+    ADD COLUMN IF NOT EXISTS address_number VARCHAR(20) NULL AFTER address_street,
+    ADD COLUMN IF NOT EXISTS address_complement VARCHAR(120) NULL AFTER address_number,
+    ADD COLUMN IF NOT EXISTS address_neighborhood VARCHAR(120) NULL AFTER address_complement,
+    ADD COLUMN IF NOT EXISTS address_city VARCHAR(120) NULL AFTER address_neighborhood,
+    ADD COLUMN IF NOT EXISTS address_state CHAR(2) NULL AFTER address_city,
+    ADD UNIQUE INDEX IF NOT EXISTS uq_users_cpf (cpf),
     ALTER COLUMN email_verified SET DEFAULT 0;

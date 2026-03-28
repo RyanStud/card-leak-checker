@@ -63,7 +63,7 @@ class Privacy
     public function getUserProfileSummary(int $userId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, name, email, email_verified, two_factor_enabled, created_at
+            'SELECT *
              FROM users
              WHERE id = ?
              LIMIT 1'

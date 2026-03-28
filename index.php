@@ -84,7 +84,7 @@ if ($forceHttps && !$isHttps && !headers_sent()) {
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self';");
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://viacep.com.br;");
 
 if ($isHttps) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
@@ -169,10 +169,13 @@ $router->post('/reset-password', [AuthController::class, 'resetPassword']);
 $router->post('/logout', [AuthController::class, 'logout']);
 
 $router->get('/dashboard', [DashboardController::class, 'index']);
+$router->post('/dashboard/profile', [DashboardController::class, 'updateProfile']);
+$router->post('/dashboard/password', [DashboardController::class, 'updatePassword']);
 
 $router->get('/projects', [ProjectController::class, 'index']);
 $router->post('/projects', [ProjectController::class, 'create']);
 $router->post('/projects/share', [ProjectController::class, 'share']);
+$router->post('/projects/revoke-access', [ProjectController::class, 'revokeAccess']);
 $router->get('/projects/approval', [ProjectController::class, 'approval']);
 $router->get('/projects/approval-history', [ProjectController::class, 'approval_history']);
 $router->post('/projects/approve', [ProjectController::class, 'approve']);

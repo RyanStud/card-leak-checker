@@ -46,12 +46,12 @@
                     <td><?= e($project['created_at']) ?></td>
                     <td>
                         <div class="actions">
-                            <form method="POST" action="<?= e(base_path('/projects/approve')) ?>" style="display:inline;">
+                            <form method="POST" action="<?= e(base_path('/projects/approve')) ?>">
                                 <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="project_id" value="<?= (int)$project['id'] ?>">
                                 <button type="submit" class="approve">Aprovar</button>
                             </form>
-                            <form method="POST" action="<?= e(base_path('/projects/reject')) ?>" style="display:inline;" id="rejectForm_<?= (int)$project['id'] ?>" data-project-id="<?= (int)$project['id'] ?>">
+                            <form method="POST" action="<?= e(base_path('/projects/reject')) ?>" id="rejectForm_<?= (int)$project['id'] ?>" data-project-id="<?= (int)$project['id'] ?>">
                                 <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="project_id" value="<?= (int)$project['id'] ?>">
                                 <input type="hidden" name="rejection_reason" id="rejectionReason_<?= (int)$project['id'] ?>" value="">

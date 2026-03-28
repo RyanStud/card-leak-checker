@@ -6,11 +6,23 @@ class ProjectController extends Controller
     {
         AuthMiddleware::handle();
 
+        $currentUserId = (int)$_SESSION['user_id'];
         $projectModel = new Project();
-        $projects = $projectModel->getProjectsByUserId((int)$_SESSION['user_id']);
+        $projects = $projectModel->getProjectsByUserId($currentUserId);
+
+        $membersByProjectId = [];
+        foreach ($projects as $project) {
+            $isRestricted = ($project['privacy_mode'] ?? 'private') === 'restricted';
+            $isOwner = ($project['role'] ?? 'member') === 'owner';
+
+            if ($isRestricted && $isOwner) {
+                $membersByProjectId[(int)$project['id']] = $projectModel->getMembersByProjectId((int)$project['id']);
+            }
+        }
 
         $this->view('projects/index', [
-            'projects' => $projects
+            'projects' => $projects,
+            'membersByProjectId' => $membersByProjectId,
         ]);
     }
 
@@ -132,6 +144,69 @@ class ProjectController extends Controller
         );
 
         set_flash('success', 'Projeto compartilhado com sucesso.');
+        $this->redirect(base_path('/projects'));
+    }
+
+    public function revokeAccess(): void
+    {
+        AuthMiddleware::handle();
+        verify_csrf();
+
+        $projectId = (int)($_POST['project_id'] ?? 0);
+        $targetUserId = (int)($_POST['target_user_id'] ?? 0);
+        $currentUserId = (int)$_SESSION['user_id'];
+
+        if ($projectId <= 0 || $targetUserId <= 0) {
+            set_flash('error', 'Dados invalidos para remocao de acesso.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        $projectModel = new Project();
+        $project = $projectModel->findById($projectId);
+
+        if (!$project) {
+            set_flash('error', 'Projeto nao encontrado.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        if ((int)$project['owner_user_id'] !== $currentUserId) {
+            set_flash('error', 'Apenas o dono pode remover acessos deste projeto.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        if (($project['privacy_mode'] ?? 'private') !== 'restricted') {
+            set_flash('error', 'Remocao de acesso disponivel apenas para projetos restritos.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        if ($targetUserId === $currentUserId) {
+            set_flash('error', 'O dono nao pode remover o proprio acesso.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        if (!$projectModel->userHasAccess($projectId, $targetUserId)) {
+            set_flash('error', 'Este usuario nao possui acesso ao projeto.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        $removed = $projectModel->removeMember($projectId, $targetUserId);
+
+        if (!$removed) {
+            set_flash('error', 'Nao foi possivel remover o acesso.');
+            $this->redirect(base_path('/projects'));
+        }
+
+        $audit = new AuditLog();
+        $audit->create(
+            $currentUserId,
+            $projectId,
+            'project_access_revoked',
+            json_encode([
+                'revoked_user_id' => $targetUserId,
+            ], JSON_UNESCAPED_UNICODE)
+        );
+
+        set_flash('success', 'Acesso removido com sucesso.');
         $this->redirect(base_path('/projects'));
     }
 
