@@ -35,5 +35,6 @@
         <input type="text" name="code" maxlength="6" required>
         <button type="submit">Ativar 2FA</button>
     </form>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

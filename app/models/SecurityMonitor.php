@@ -117,4 +117,26 @@ class SecurityMonitor
 
         return $stmt->fetchAll();
     }
+
+    public function cleanupOldSecurityData(int $retentionDays): array
+    {
+        $retentionDays = max(1, $retentionDays);
+
+        $queries = [
+            'request_logs' => 'DELETE FROM request_logs WHERE created_at < (NOW() - INTERVAL ? DAY)',
+            'suspicious_events' => 'DELETE FROM suspicious_events WHERE created_at < (NOW() - INTERVAL ? DAY)',
+            'login_attempts' => 'DELETE FROM login_attempts WHERE attempted_at < (NOW() - INTERVAL ? DAY)',
+            'blocked_ips' => 'DELETE FROM blocked_ips WHERE blocked_until IS NOT NULL AND blocked_until < (NOW() - INTERVAL ? DAY)',
+        ];
+
+        $deletedByTable = [];
+
+        foreach ($queries as $table => $sql) {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$retentionDays]);
+            $deletedByTable[$table] = $stmt->rowCount();
+        }
+
+        return $deletedByTable;
+    }
 }

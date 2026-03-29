@@ -19,6 +19,17 @@ class SecurityMiddleware
 
         $monitor->logRequest($ip, $uri, $method, $userAgent, $country, null);
 
+        $retentionDays = (int)env('SECURITY_LOG_RETENTION_DAYS', 90);
+        $cleanupProbability = (int)env('SECURITY_LOG_CLEANUP_PROBABILITY', 2);
+        if ($cleanupProbability > 0 && random_int(1, 100) <= min(100, $cleanupProbability)) {
+            try {
+                $cleanupResult = $monitor->cleanupOldSecurityData($retentionDays);
+                app_log('security_cleanup retention_days=' . max(1, $retentionDays) . ' deleted=' . json_encode($cleanupResult));
+            } catch (Throwable $e) {
+                app_log('security_cleanup_error ' . $e->getMessage());
+            }
+        }
+
         $recentRequests = $monitor->countRecentRequestsByIp($ip, 1);
         if ($recentRequests > 120) {
             $monitor->blockIp(

@@ -95,7 +95,9 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     email VARCHAR(150) NULL,
     ip_address VARCHAR(45) NOT NULL,
     success TINYINT(1) NOT NULL DEFAULT 0,
-    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_login_attempts_ip_attempted (ip_address, attempted_at),
+    INDEX idx_login_attempts_email_attempted (email, attempted_at)
 );
 
 CREATE TABLE IF NOT EXISTS suspicious_events (
@@ -105,7 +107,9 @@ CREATE TABLE IF NOT EXISTS suspicious_events (
     ip_address VARCHAR(45) NOT NULL,
     event_type VARCHAR(80) NOT NULL,
     details TEXT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_suspicious_events_ip_created (ip_address, created_at),
+    INDEX idx_suspicious_events_event_created (event_type, created_at)
 );
 
 
@@ -117,6 +121,7 @@ CREATE TABLE IF NOT EXISTS email_verifications (
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email_verifications_token_valid (token_hash, used_at, expires_at),
     CONSTRAINT fk_email_verifications_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)
@@ -131,6 +136,8 @@ CREATE TABLE IF NOT EXISTS password_resets (
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_resets_token_valid (token_hash, used_at, expires_at),
+    INDEX idx_password_resets_user_used (user_id, used_at),
     CONSTRAINT fk_password_resets_user 
         FOREIGN KEY (user_id) 
         REFERENCES users(id) 
@@ -152,5 +159,7 @@ CREATE TABLE IF NOT EXISTS request_logs (
     user_agent TEXT NULL,
     country VARCHAR(80) NULL,
     response_code INT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_request_logs_ip_created (ip_address, created_at),
+    INDEX idx_request_logs_created (created_at)
 );

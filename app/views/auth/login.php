@@ -37,5 +37,6 @@
 
     <p><a href="<?= e(base_path('/register')) ?>">Criar conta</a></p>
     <p><a href="<?= e(base_path('/forgot-password')) ?>">Esqueci minha senha</a></p>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

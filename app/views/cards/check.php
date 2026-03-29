@@ -72,5 +72,6 @@
             retornam “possible_leak_found”.
         </p>
     <?php endif; ?>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

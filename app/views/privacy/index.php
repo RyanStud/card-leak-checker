@@ -128,5 +128,6 @@
         <br>
         <button type="submit" style="color:red;">Excluir conta definitivamente</button>
     </form>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

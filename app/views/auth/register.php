@@ -37,9 +37,23 @@
             <input type="password" name="password" required>
         </div>
 
+        <div>
+            <label>
+                <input
+                    type="checkbox"
+                    name="lgpd_consent"
+                    value="1"
+                    <?= old('lgpd_consent') === '1' ? 'checked' : '' ?>
+                    required
+                >
+                Li e concordo com o tratamento dos meus dados pessoais, conforme a LGPD.
+            </label>
+        </div>
+
         <button type="submit">Cadastrar</button>
     </form>
 
     <p><a href="<?= e(base_path('/login')) ?>">Já tenho conta</a></p>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

@@ -2,6 +2,11 @@
 
 class PrivacyController extends Controller
 {
+    public function about(): void
+    {
+        $this->view('about/index');
+    }
+
     public function index(): void
     {
         AuthMiddleware::handle();

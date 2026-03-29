@@ -16,7 +16,6 @@
     <?php else: ?>
         <table border="1" cellpadding="8">
             <tr>
-                <th>ID</th>
                 <th>Projeto</th>
                 <th>BIN mascarado</th>
                 <th>Últimos 4</th>
@@ -26,7 +25,6 @@
             </tr>
             <?php foreach ($history as $row): ?>
                 <tr>
-                    <td><?= (int)$row['id'] ?></td>
                     <td><?= e($row['project_name']) ?></td>
                     <td><?= e($row['bin_masked']) ?></td>
                     <td><?= e($row['last4_masked']) ?></td>
@@ -37,5 +35,6 @@
             <?php endforeach; ?>
         </table>
     <?php endif; ?>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

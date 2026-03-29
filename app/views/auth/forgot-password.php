@@ -33,5 +33,6 @@
     </form>
 
     <p><a href="<?= e(base_path('/login')) ?>">Voltar ao login</a></p>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

@@ -28,5 +28,6 @@
     </p>
 
     <p><a href="<?= e(base_path('/login')) ?>">Ir para login</a></p>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

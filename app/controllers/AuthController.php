@@ -14,10 +14,12 @@ class AuthController extends Controller
         $name = clean_text($_POST['name'] ?? '');
         $email = clean_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        $lgpdConsent = $_POST['lgpd_consent'] ?? '';
 
         $_SESSION['old'] = [
             'name' => $name,
             'email' => $email,
+            'lgpd_consent' => $lgpdConsent,
         ];
 
         if (!preg_match('/^[A-Za-zÀ-ÿ\' -]{2,100}$/u', $name)) {
@@ -32,6 +34,11 @@ class AuthController extends Controller
 
         if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/', $password)) {
             set_flash('error', 'A senha deve ter no mínimo 12 caracteres, com maiúscula, minúscula, número e símbolo.');
+            $this->redirect(base_path('/register'));
+        }
+
+        if ($lgpdConsent !== '1') {
+            set_flash('error', 'Você precisa consentir com o tratamento de dados pessoais (LGPD) para se cadastrar.');
             $this->redirect(base_path('/register'));
         }
 

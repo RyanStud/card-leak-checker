@@ -25,6 +25,24 @@
     <p>2FA ativo: <?= !empty($user['two_factor_enabled']) ? 'Sim' : 'Não' ?></p>
 
     <h2>Meu perfil</h2>
+
+    <!-- Modo Visualização -->
+    <div id="profile-view" style="display: block;">
+        <p><strong>Nome:</strong> <?= e($user['name'] ?? '-') ?></p>
+        <p><strong>CPF:</strong> <?= e($user['cpf'] ?? '-') ?></p>
+        <p><strong>Trabalho:</strong> <?= e($user['job_title'] ?? '-') ?></p>
+        <p><strong>CEP:</strong> <?= e($user['cep'] ?? '-') ?></p>
+        <p><strong>Logradouro:</strong> <?= e($user['address_street'] ?? '-') ?></p>
+        <p><strong>Número:</strong> <?= e($user['address_number'] ?? '-') ?></p>
+        <p><strong>Complemento:</strong> <?= e($user['address_complement'] ?? '-') ?></p>
+        <p><strong>Bairro:</strong> <?= e($user['address_neighborhood'] ?? '-') ?></p>
+        <p><strong>Cidade:</strong> <?= e($user['address_city'] ?? '-') ?></p>
+        <p><strong>UF:</strong> <?= e($user['address_state'] ?? '-') ?></p>
+        <button type="button" id="edit-profile-btn">Editar Perfil</button>
+    </div>
+
+    <!-- Modo Edição -->
+    <div id="profile-edit" style="display: none;">
     <form method="POST" action="<?= e(base_path('/dashboard/profile')) ?>">
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
@@ -81,10 +99,23 @@
             <input type="text" id="address_state" name="address_state" maxlength="2" placeholder="SP" value="<?= e($user['address_state'] ?? '') ?>">
         </div>
 
-        <button type="submit">Salvar perfil</button>
+        <div style="display: flex; gap: 10px;">
+            <button type="submit">Salvar perfil</button>
+            <button type="button" id="cancel-profile-btn">Cancelar</button>
+        </div>
     </form>
+    </div>
 
     <h2>Alterar senha</h2>
+
+    <!-- Modo Visualização -->
+    <div id="password-view" style="display: block;">
+        <p>Clique no botão abaixo para alterar sua senha.</p>
+        <button type="button" id="edit-password-btn">Alterar Senha</button>
+    </div>
+
+    <!-- Modo Edição -->
+    <div id="password-edit" style="display: none;">
     <form method="POST" action="<?= e(base_path('/dashboard/password')) ?>">
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
@@ -103,9 +134,15 @@
             <input type="password" name="new_password_confirmation" required>
         </div>
 
-        <button type="submit">Alterar senha</button>
+        <div style="display: flex; gap: 10px;">
+            <button type="submit">Alterar senha</button>
+            <button type="button" id="cancel-password-btn">Cancelar</button>
+        </div>
     </form>
+    </div>
 
-    <script src="<?= e(base_path('/public/js/dashboard-profile.js')) ?>"></script>
+    <?php $dashboardScriptVersion = (string) (@filemtime(__DIR__ . '/../../../public/js/dashboard-profile.js') ?: time()); ?>
+    <script src="<?= e(base_path('/public/js/dashboard-profile.js?v=' . $dashboardScriptVersion)) ?>"></script>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

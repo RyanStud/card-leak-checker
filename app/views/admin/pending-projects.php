@@ -77,5 +77,6 @@
     </div>
 
     <script src="<?= e(base_path('/public/js/reject-modal.js')) ?>"></script>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

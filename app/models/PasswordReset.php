@@ -21,21 +21,20 @@ class PasswordReset
 
     public function findValidByToken(string $plainToken): ?array
     {
+        $tokenHash = hash('sha256', $plainToken);
+
         $stmt = $this->pdo->prepare(
             'SELECT * FROM password_resets
-             WHERE used_at IS NULL
-               AND expires_at >= NOW()'
+             WHERE token_hash = ?
+               AND used_at IS NULL
+               AND expires_at >= NOW()
+             ORDER BY id DESC
+             LIMIT 1'
         );
-        $stmt->execute();
-        $rows = $stmt->fetchAll();
+        $stmt->execute([$tokenHash]);
+        $reset = $stmt->fetch();
 
-        foreach ($rows as $row) {
-            if (hash_equals($row['token_hash'], hash('sha256', $plainToken))) {
-                return $row;
-            }
-        }
-
-        return null;
+        return $reset ?: null;
     }
 
     public function markAsUsed(int $id): bool

@@ -30,6 +30,7 @@ if (is_logged_in()) {
     }
 } else {
     $links = [
+        ['/about', 'Sobre nos'],
         ['/login', 'Login'],
         ['/register', 'Cadastro'],
         ['/forgot-password', 'Recuperar senha'],

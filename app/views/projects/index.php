@@ -297,7 +297,6 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 50px;">ID</th>
                             <th>Nome</th>
                             <th>Privacidade</th>
                             <th>Papel</th>
@@ -313,7 +312,6 @@
                             $isOwner = ($project['role'] ?? 'member') === 'owner';
                         ?>
                             <tr data-project-row="<?= $projectId ?>">
-                                <td><?= $projectId ?></td>
                                 <td><strong><?= e($project['name']) ?></strong></td>
                                 <td><?= ucfirst(e($project['privacy_mode'])) ?></td>
                                 <td><?= ucfirst(e($project['role'])) ?></td>
@@ -342,7 +340,7 @@
                             </tr>
                             <?php if ($isRestricted && $isOwner): ?>
                                 <tr class="share-form-row" data-share-row="<?= $projectId ?>" style="display: none;">
-                                    <td colspan="7">
+                                    <td colspan="6">
                                         <form method="POST" action="<?= e(base_path('/projects/share')) ?>" style="display: flex; gap: 8px; align-items: flex-end; margin: 0;">
                                             <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="project_id" value="<?= $projectId ?>">
@@ -357,7 +355,7 @@
                                 </tr>
                             <?php endif; ?>
                             <tr class="access-details-row" data-access-row="<?= $projectId ?>" style="display: none;">
-                                <td colspan="7">
+                                <td colspan="6">
                                     <div class="details-table">
                                         <?php if ($isRestricted && $isOwner): ?>
                                             <?php $projectMembers = $membersByProjectId[$projectId] ?? []; ?>
@@ -410,5 +408,6 @@
     </div>
 
     <script src="<?= e(base_path('/public/js/projects.js')) ?>"></script>
+    <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

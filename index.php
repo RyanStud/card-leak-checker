@@ -163,6 +163,8 @@ $router->post('/2fa/verify', [AuthController::class, 'verify2FA']);
 $router->get('/forgot-password', [AuthController::class, 'showForgotPassword']);
 $router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
+$router->get('/about', [PrivacyController::class, 'about']);
+
 $router->get('/reset-password', [AuthController::class, 'showResetPassword']);
 $router->post('/reset-password', [AuthController::class, 'resetPassword']);
 
