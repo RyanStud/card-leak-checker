@@ -1,5 +1,9 @@
 # Card Leak Checker Feature Tests
 
+## CÓDIGO DA BRANCH DE TESTES POSSUI CONFIGURAÇÔES APENAS PARA DESENVOLVER NOVAS FEATURES LOCALMENTE, NÃO SENDO SEGURO O UPLOAD EM PRODUÇÃO
+
+## TODAS AS FEATURES TESTADAS NESSE AMBIENTE DEVEM PASSAR POR HOMOLOGAÇÃO
+
 ## Aviso Legal
 
 Este projeto é uma simulação controlada destinada exclusivamente para testes de cibersegurança e uso educacional.
