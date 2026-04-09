@@ -15,9 +15,9 @@ class Config
         $masterKey = self::readMasterKey();
 
         if ($masterKey !== '') {
-            $fullPath = self::projectPath($secretsFile);
+            $fullPath = self::resolveProjectFile($secretsFile);
 
-            if (file_exists($fullPath)) {
+            if ($fullPath !== null) {
                 self::$secretManager = new SecretManager($fullPath, $masterKey);
             }
         }
@@ -68,11 +68,9 @@ class Config
         $masterKeyFile = Env::get('MASTER_KEY_FILE', '');
 
         if (is_string($masterKeyFile) && trim($masterKeyFile) !== '') {
-            $fullPath = self::isAbsolutePath($masterKeyFile)
-                ? $masterKeyFile
-                : self::projectPath($masterKeyFile);
+            $fullPath = self::resolveReadableFile($masterKeyFile);
 
-            if (file_exists($fullPath)) {
+            if ($fullPath !== null) {
                 $content = file_get_contents($fullPath);
 
                 if ($content !== false && trim($content) !== '') {
@@ -92,5 +90,53 @@ class Config
     private static function projectPath(string $relativePath): string
     {
         return dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . ltrim($relativePath, '/\\');
+    }
+
+    private static function resolveProjectFile(string $relativePath): ?string
+    {
+        $candidatePath = self::projectPath($relativePath);
+        $realPath = realpath($candidatePath);
+
+        if ($realPath === false || !is_file($realPath)) {
+            return null;
+        }
+
+        $projectRoot = self::normalizePath(self::projectRoot()) . DIRECTORY_SEPARATOR;
+        $resolvedPath = self::normalizePath($realPath);
+
+        if (!str_starts_with($resolvedPath, $projectRoot)) {
+            return null;
+        }
+
+        return $realPath;
+    }
+
+    private static function resolveReadableFile(string $path): ?string
+    {
+        if (!self::isAbsolutePath($path)) {
+            return null;
+        }
+
+        $candidatePath = $path;
+
+        $realPath = realpath($candidatePath);
+
+        if ($realPath === false || !is_file($realPath)) {
+            return null;
+        }
+
+        return $realPath;
+    }
+
+    private static function projectRoot(): string
+    {
+        return dirname(__DIR__, 2);
+    }
+
+    private static function normalizePath(string $path): string
+    {
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+
+        return rtrim($normalizedPath, DIRECTORY_SEPARATOR);
     }
 }

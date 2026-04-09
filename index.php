@@ -72,11 +72,14 @@ if (!$isHttps && $isFromTrustedProxy) {
 
 $forceHttps = filter_var(env('FORCE_HTTPS', $appEnv === 'production'), FILTER_VALIDATE_BOOL);
 if ($forceHttps && !$isHttps && !headers_sent()) {
-    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $appUrl = rtrim((string) env('APP_URL', ''), '/');
+    $appUrlParts = $appUrl !== '' ? parse_url($appUrl) : false;
+    $canonicalHost = is_array($appUrlParts) && !empty($appUrlParts['host']) ? (string) $appUrlParts['host'] : '';
+    $canonicalPort = is_array($appUrlParts) && !empty($appUrlParts['port']) ? ':' . (string) $appUrlParts['port'] : '';
     $uri = $_SERVER['REQUEST_URI'] ?? '/';
 
-    if ($host !== '') {
-        header('Location: https://' . $host . $uri, true, 301);
+    if ($canonicalHost !== '') {
+        header('Location: https://' . $canonicalHost . $canonicalPort . $uri, true, 301);
         exit;
     }
 }
@@ -84,7 +87,7 @@ if ($forceHttps && !$isHttps && !headers_sent()) {
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://viacep.com.br;");
+header("Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://viacep.com.br;");
 
 if ($isHttps) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');

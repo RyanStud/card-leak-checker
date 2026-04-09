@@ -443,7 +443,8 @@ SESSION_IDLE_TIMEOUT=3600
 
 # Segredos criptografados
 SECRETS_FILE=config/secrets.enc
-MASTER_KEY_FILE=../cardleak.masterkey
+# Use um caminho absoluto para o arquivo da chave mestra
+MASTER_KEY_FILE=C:\caminho\absoluto\cardleak.masterkey
 
 DB_HOST=localhost
 DB_PORT=3306
