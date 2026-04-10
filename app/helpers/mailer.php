@@ -2,7 +2,7 @@
 
 function send_demo_mail(string $to, string $subject, string $body): bool
 {
-    $mode = env('MAIL_MODE', 'log');
+    $mode = strtolower(trim((string) env('MAIL_MODE', 'log')));
 
     if ($mode === 'log') {
         app_log("MAIL TO: {$to} | SUBJECT: {$subject} | BODY: {$body}");
@@ -10,6 +10,11 @@ function send_demo_mail(string $to, string $subject, string $body): bool
     }
 
     if ($mode === 'mailtrap_api') {
+        if (!is_mailtrap_api_configured()) {
+            app_log("MAIL FALLBACK (mailtrap_api sem token) | TO: {$to} | SUBJECT: {$subject} | BODY: {$body}");
+            return true;
+        }
+
         return send_mailtrap_api_mail($to, $subject, $body);
     }
 
@@ -19,7 +24,7 @@ function send_demo_mail(string $to, string $subject, string $body): bool
 
 function send_mailtrap_api_mail(string $to, string $subject, string $body): bool
 {
-    $token = (string) required_secret('MAILTRAP_API_TOKEN');
+    $token = (string) secret('MAILTRAP_API_TOKEN', '');
     $fromEmail = (string) env('MAIL_FROM', 'no-reply@example.com');
     $fromName = (string) env('MAIL_FROM_NAME', 'Card Leak Checker');
 
@@ -75,4 +80,11 @@ function send_mailtrap_api_mail(string $to, string $subject, string $body): bool
 
     app_log("MAILTRAP API ERRO | HTTP: {$httpCode} | RESPONSE: {$response}");
     return false;
+}
+
+function is_mailtrap_api_configured(): bool
+{
+    $token = (string) secret('MAILTRAP_API_TOKEN', '');
+
+    return trim($token) !== '';
 }

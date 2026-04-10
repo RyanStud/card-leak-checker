@@ -72,14 +72,22 @@ if (!$isHttps && $isFromTrustedProxy) {
 
 $forceHttps = filter_var(env('FORCE_HTTPS', $appEnv === 'production'), FILTER_VALIDATE_BOOL);
 if ($forceHttps && !$isHttps && !headers_sent()) {
-    $appUrl = rtrim((string) env('APP_URL', ''), '/');
+    $appUrlRaw = getenv('APP_URL');
+    $appUrl = is_string($appUrlRaw) ? trim($appUrlRaw) : '';
     $appUrlParts = $appUrl !== '' ? parse_url($appUrl) : false;
-    $canonicalHost = is_array($appUrlParts) && !empty($appUrlParts['host']) ? (string) $appUrlParts['host'] : '';
-    $canonicalPort = is_array($appUrlParts) && !empty($appUrlParts['port']) ? ':' . (string) $appUrlParts['port'] : '';
-    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+
+    $canonicalHost = is_array($appUrlParts) && !empty($appUrlParts['host'])
+        ? strtolower((string) $appUrlParts['host'])
+        : '';
+    $canonicalPort = is_array($appUrlParts) && isset($appUrlParts['port']) && is_int($appUrlParts['port'])
+        ? ':' . (string) $appUrlParts['port']
+        : '';
+    $canonicalPath = is_array($appUrlParts) && isset($appUrlParts['path'])
+        ? '/' . ltrim((string) $appUrlParts['path'], '/')
+        : '/';
 
     if ($canonicalHost !== '') {
-        header('Location: https://' . $canonicalHost . $canonicalPort . $uri, true, 301);
+        header('Location: https://' . $canonicalHost . $canonicalPort . $canonicalPath, true, 301);
         exit;
     }
 }

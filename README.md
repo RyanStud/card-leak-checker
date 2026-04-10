@@ -461,3 +461,81 @@ Dominio: Hostinguer
 Servidor de email: mailtrap
 Hospedagem de aplicação: Hostinguer
 DB: Hostinguer/SQL
+
+---
+
+## 12. Processo para subir em novo computador
+
+### 1. Preparar ambiente
+
+- Instale PHP 8+, MySQL/MariaDB e Apache (ou use XAMPP).
+- No diretório do projeto, rode `composer install`.
+- Crie o banco de dados e aplique o schema em `database/schema.sql`.
+
+### 2. Criar arquivo `.env` com base no `.env.example`
+
+- Copie `.env.example` para `.env`.
+- Preencha os valores básicos de aplicação e banco:
+	- `APP_ENV`, `APP_DEBUG`, `APP_URL`
+	- `DB_HOST`, `DB_PORT`, `DB_NAME`
+- Defina também:
+	- `MASTER_KEY_FILE` com caminho absoluto do arquivo da master key
+	- `SECRETS_FILE=config/secrets.enc`
+
+Exemplo de caminho da master key no Windows:
+
+```env
+MASTER_KEY_FILE=C:\xampp\htdocs\cardleak.masterkey
+```
+
+### 3. Criar arquivo `config/secrets.json` com base no `config/secrets.json.example`
+
+- Copie `config/secrets.json.example` para `config/secrets.json`.
+- Preencha os campos reais de segredo:
+	- `DB_USER`: usuário do banco
+	- `DB_PASS`: senha do banco
+	- `APP_KEY`: chave interna da aplicação
+	- `CSRF_SECRET`: segredo para proteção CSRF
+	- `MAILTRAP_API_TOKEN`: token do Mailtrap API
+	- `MAIL_USER`: usuário SMTP
+	- `MAIL_PASS`: senha SMTP
+
+Observação:
+
+- As chaves iniciadas com `_comment_` no arquivo de exemplo são apenas explicativas. Você pode remover essas chaves no `config/secrets.json` final, se quiser manter somente os segredos.
+
+### 4. Gerar arquivo criptografado de segredos
+
+Com `.env` e `config/secrets.json` preenchidos, execute:
+
+```bash
+php generate-secrets.php
+```
+
+O comando vai:
+
+- Usar `SECRET_MASTER_KEY` (se existir no ambiente), ou
+- Ler a chave do arquivo apontado em `MASTER_KEY_FILE`.
+
+Saída esperada:
+
+- Geração de `config/secrets.enc`.
+
+### 5. Pós-geração e execução
+
+- Valide a aplicação com o `config/secrets.enc` gerado.
+- Remova `config/secrets.json` do ambiente final (produção).
+- Inicie Apache/PHP e acesse o `APP_URL` configurado.
+
+### 6. E-mail no primeiro deploy (sem Mailtrap)
+
+Para facilitar o onboarding, o projeto pode rodar sem `MAILTRAP_API_TOKEN`.
+
+- Use `MAIL_MODE=log` no `.env` para ambiente inicial.
+- Nesse modo, os e-mails são registrados em log e não enviados externamente.
+- Mesmo se `MAIL_MODE=mailtrap_api`, quando não houver token configurado o sistema faz fallback para log.
+
+Quando quiser envio real por Mailtrap:
+
+- Defina `MAIL_MODE=mailtrap_api`.
+- Preencha `MAILTRAP_API_TOKEN` no `config/secrets.json` e gere novamente `config/secrets.enc`.

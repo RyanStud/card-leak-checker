@@ -4,11 +4,33 @@ require __DIR__ . '/app/core/Env.php';
 Env::load(__DIR__ . '/.env');
 
 $masterKey = getenv('SECRET_MASTER_KEY');
-if (!is_string($masterKey) || trim($masterKey) === '') {
-    exit("Defina SECRET_MASTER_KEY no ambiente do sistema antes de rodar.\n");
-}
 
-$masterKey = trim($masterKey);
+if (!is_string($masterKey) || trim($masterKey) === '') {
+    $masterKeyFile = (string) Env::get('MASTER_KEY_FILE', '');
+
+    if (trim($masterKeyFile) === '') {
+        exit("Defina SECRET_MASTER_KEY ou MASTER_KEY_FILE no .env antes de rodar.\n");
+    }
+
+    $isAbsolutePath = preg_match('/^[A-Za-z]:\\\\/', $masterKeyFile) === 1 || str_starts_with($masterKeyFile, '/');
+    $resolvedPath = $isAbsolutePath
+        ? $masterKeyFile
+        : __DIR__ . DIRECTORY_SEPARATOR . ltrim($masterKeyFile, '/\\');
+
+    $realPath = realpath($resolvedPath);
+    if ($realPath === false || !is_file($realPath)) {
+        exit("Arquivo de master key não encontrado: {$masterKeyFile}\n");
+    }
+
+    $fileKey = file_get_contents($realPath);
+    if ($fileKey === false || trim($fileKey) === '') {
+        exit("Arquivo de master key vazio ou ilegível: {$masterKeyFile}\n");
+    }
+
+    $masterKey = trim($fileKey);
+} else {
+    $masterKey = trim($masterKey);
+}
 
 $inputFile = __DIR__ . '/config/secrets.json';
 $outputFile = __DIR__ . '/config/secrets.enc';
