@@ -26,6 +26,16 @@
         </div>
     <?php endif; ?>
 
+    <section class="cards-info-box">
+        <h3 class="cards-info-box__title">Por que é necessário criar e aprovar um projeto?</h3>
+        <p class="cards-info-box__intro">A consulta de cartão exige um projeto para garantir uso responsável e rastreável da plataforma.</p>
+        <ul class="cards-info-box__list">
+            <li>Cada consulta fica vinculada a um objetivo formal (ex.: prevenção a fraude em um sistema específico).</li>
+            <li>A aprovação do projeto impede uso indevido da ferramenta para consultas sem justificativa.</li>
+            <li>O vínculo com projeto permite auditoria e histórico de quem consultou, quando e para qual finalidade.</li>
+        </ul>
+    </section>
+
     <?php if (empty($projects)): ?>
         <p>Você precisa criar um projeto antes de consultar.</p>
     <?php else: ?>

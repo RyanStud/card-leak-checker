@@ -477,6 +477,29 @@ progress {
     height: 13px;
 }
 
+.cards-info-box {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.cards-info-box__title {
+    margin-bottom: 8px;
+}
+
+.cards-info-box__intro {
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.cards-info-box__list {
+    margin: 0;
+    padding-left: 20px;
+}
+
 @media (max-width: 780px) {
     body {
         padding: 146px 14px 32px;
