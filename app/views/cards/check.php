@@ -41,7 +41,7 @@
                             $status = $project['approval_status'] ?? 'pending';
                             $statusText = '';
                             $disabled = false;
-                            
+
                             if ($status === 'approved') {
                                 $statusText = ' ✓ Aprovado';
                             } elseif ($status === 'pending') {
@@ -60,17 +60,27 @@
             </div>
 
             <div>
-                <label>Número do cartão (apenas para demonstração)</label><br>
-                <input type="text" name="card_number" placeholder="Ex: 4111111111111111" required>
+                <label>Número do cartão</label><br>
+                <input type="text" name="card_number" placeholder="Ex: 4111111111111111" maxlength="19" required>
+            </div>
+
+            <div>
+                <label>Mês de validade (MM)</label><br>
+                <input type="text" name="expiry_month" placeholder="Ex: 08" maxlength="2" required>
+            </div>
+
+            <div>
+                <label>Ano de validade (AAAA)</label><br>
+                <input type="text" name="expiry_year" placeholder="Ex: 2029" maxlength="4" required>
+            </div>
+
+            <div>
+                <label>CVV</label><br>
+                <input type="password" name="cvv" placeholder="Ex: 123" maxlength="4" required>
             </div>
 
             <button type="submit">Verificar</button>
         </form>
-
-        <p style="margin-top:16px;">
-            Para teste rápido, finais <strong>1111</strong>, <strong>1234</strong>, <strong>9999</strong> e <strong>0000</strong>
-            retornam “possible_leak_found”.
-        </p>
     <?php endif; ?>
     <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>

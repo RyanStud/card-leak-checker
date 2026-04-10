@@ -527,6 +527,25 @@ Saída esperada:
 - Remova `config/secrets.json` do ambiente final (produção).
 - Inicie Apache/PHP e acesse o `APP_URL` configurado.
 
+### 5.1 Importar base de cartões vazados (vault)
+
+Com o banco sincronizado via `database/sync_schema.sql`, execute a importação do CSV para popular `leaked_cards_vault`:
+
+```bash
+php scripts/import-leaked-cards.php
+```
+
+Comando com parâmetros opcionais:
+
+```bash
+php scripts/import-leaked-cards.php caminho/do/arquivo.csv nome-do-lote
+```
+
+Detalhes:
+
+- Sem parâmetros, o script usa o CSV em `LEAKED_CARDS_SAMPLE_CSV` (padrão: `database/sample_leaked_cards.csv`).
+- O script valida os cartões e grava apenas no vault criptografado (`leaked_cards_vault`).
+
 ### 6. E-mail no primeiro deploy (sem Mailtrap)
 
 Para facilitar o onboarding, o projeto pode rodar sem `MAILTRAP_API_TOKEN`.

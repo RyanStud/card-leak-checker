@@ -135,6 +135,7 @@ require __DIR__ . '/app/middleware/SecurityMiddleware.php';
 require __DIR__ . '/app/models/User.php';
 require __DIR__ . '/app/models/Project.php';
 require __DIR__ . '/app/models/CardCheckRequest.php';
+require __DIR__ . '/app/models/LeakedCardVault.php';
 require __DIR__ . '/app/models/AuditLog.php';
 require __DIR__ . '/app/models/Privacy.php';
 require __DIR__ . '/app/models/LoginAttempt.php';

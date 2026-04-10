@@ -177,6 +177,18 @@ CREATE TABLE IF NOT EXISTS request_logs (
     INDEX idx_request_logs_created (created_at)
 );
 
+CREATE TABLE IF NOT EXISTS leaked_cards_vault (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    card_lookup_hash CHAR(64) NOT NULL,
+    payload_ciphertext MEDIUMBLOB NOT NULL,
+    payload_iv VARBINARY(12) NOT NULL,
+    payload_tag VARBINARY(16) NOT NULL,
+    source_batch VARCHAR(80) NOT NULL DEFAULT 'sample-local',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_card_lookup_hash (card_lookup_hash),
+    INDEX idx_source_batch_created (source_batch, created_at)
+);
+
 -- Ajustes de estrutura para bancos antigos
 ALTER TABLE projects
     ADD COLUMN IF NOT EXISTS justification TEXT NULL AFTER privacy_mode,
@@ -211,6 +223,10 @@ ALTER TABLE suspicious_events
 ALTER TABLE request_logs
     ADD INDEX IF NOT EXISTS idx_request_logs_ip_created (ip_address, created_at),
     ADD INDEX IF NOT EXISTS idx_request_logs_created (created_at);
+
+ALTER TABLE leaked_cards_vault
+    ADD INDEX IF NOT EXISTS idx_card_lookup_hash (card_lookup_hash),
+    ADD INDEX IF NOT EXISTS idx_source_batch_created (source_batch, created_at);
 
 ALTER TABLE password_resets
     ADD INDEX IF NOT EXISTS idx_password_resets_token_valid (token_hash, used_at, expires_at),
