@@ -52,4 +52,53 @@ class AdminController extends Controller
             'allowedRanges' => $allowedRanges,
         ]);
     }
+
+    public function importCards(): void
+    {
+        AdminMiddleware::handle();
+        verify_csrf();
+
+        $defaultCsvPath = (string)env('LEAKED_CARDS_SAMPLE_CSV', 'database/sample_leaked_cards.csv');
+        $argCsvPath = clean_text($_POST['csv_path'] ?? $defaultCsvPath);
+        $sourceBatch = clean_text($_POST['source_batch'] ?? ('admin-' . date('Ymd-His')));
+
+        $csvPath = $argCsvPath === '' ? $defaultCsvPath : $argCsvPath;
+
+        if (!preg_match('/^[A-Za-z]:\\\\/', $csvPath) && !str_starts_with($csvPath, '/')) {
+            $csvPath = __DIR__ . '/../../' . ltrim($csvPath, '/\\');
+        }
+
+        $realPath = realpath($csvPath);
+        if ($realPath === false) {
+            set_flash('error', 'CSV nao encontrado para importacao.');
+            $this->redirect(base_path('/admin'));
+        }
+
+        if ($sourceBatch === '') {
+            $sourceBatch = 'admin-' . date('Ymd-His');
+        }
+
+        try {
+            $vault = new LeakedCardVault();
+            $inserted = $vault->importFromCsv($realPath, $sourceBatch);
+
+            $audit = new AuditLog();
+            $audit->create(
+                (int)($_SESSION['user_id'] ?? 0),
+                null,
+                'admin_cards_vault_import',
+                json_encode([
+                    'csv_path' => $realPath,
+                    'source_batch' => $sourceBatch,
+                    'inserted' => $inserted,
+                ], JSON_UNESCAPED_UNICODE)
+            );
+
+            set_flash('success', 'Importacao concluida. Registros inseridos: ' . (string)$inserted . '. Lote: ' . $sourceBatch);
+        } catch (Throwable $e) {
+            set_flash('error', 'Falha na importacao: ' . $e->getMessage());
+        }
+
+        $this->redirect(base_path('/admin'));
+    }
 }

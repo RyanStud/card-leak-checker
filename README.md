@@ -22,7 +22,8 @@ O sistema permite que usuários autenticados consultem se um cartão pode ter si
 7. [Medidas de Segurança Implementadas](#7-medidas-de-segurança-implementadas)
 8. [LGPD e Privacidade](#8-lgpd-e-privacidade)
 9. [Auditoria](#9-auditoria)
-10. [Variáveis de Ambiente](#10-variáveis-de-ambiente)
+10. [Hospedagem e serviços](#10-hospedagem-e-serviços)
+11. [Processo para subir em novo computador](#11-processo-para-subir-em-novo-computador)
 
 ---
 
@@ -158,6 +159,7 @@ card-leak-checker/
 │   │   ├── AuditLog.php
 │   │   ├── CardCheckRequest.php
 │   │   ├── EmailVerification.php
+│   │   ├── LeakedCardVault.php
 │   │   ├── LoginAttempt.php
 │   │   ├── PasswordReset.php
 │   │   ├── Privacy.php
@@ -182,6 +184,8 @@ card-leak-checker/
 │   └── secrets.json.example
 │
 ├── database/
+│   ├── leaked_cards_vault.sql
+│   ├── sample_leaked_cards.csv
 │   ├── schema.sql
 │   └── sync_schema.sql
 │
@@ -229,16 +233,21 @@ Usuários podem criar projetos com níveis de privacidade:
 
 ### Consulta de vazamento de cartão
 
-Campos consultados:
+Campos informados na consulta:
 
-- BIN do cartão
-- Últimos 4 dígitos
+- Número do cartão
+- Mês e ano de validade
+- CVV
 
-Dados registrados por consulta:
+Dados registrados por consulta (sem armazenar PAN/CVV em claro):
 
+- Fingerprint do cartão
+- BIN mascarado
+- Últimos 4 mascarados
 - Data da consulta
 - Status do resultado
 - Projeto associado
+- Origem da consulta
 
 ### Histórico de consultas
 
@@ -367,6 +376,32 @@ Fluxo recomendado:
 3. Executar `php generate-secrets.php` para gerar `config/secrets.enc`.
 4. Remover `config/secrets.json` do ambiente de produção.
 
+### Criptografia de dados no banco (vault)
+
+Os dados sensíveis do dataset de cartões vazados são armazenados no banco com criptografia em repouso na tabela `leaked_cards_vault`.
+
+Como funciona:
+
+- Busca por cartão: hash HMAC-SHA256 em `card_lookup_hash`.
+- Material sensível (`card_number`, `expiry_month`, `expiry_year`, `cvv`): criptografado com `AES-256-GCM`.
+- Integridade/autenticidade: tag GCM (`payload_tag`) e IV aleatório por registro (`payload_iv`).
+- Payload criptografado: armazenado em `payload_ciphertext`.
+
+Chaves e segredos usados:
+
+- `CARD_LOOKUP_PEPPER`: pepper do hash de busca.
+- `CARD_VAULT_KEY`: material para derivar chave de criptografia do vault.
+
+Observação importante:
+
+- A tabela de histórico `card_check_requests` armazena apenas metadados e máscaras (ex.: BIN/last4), sem PAN/CVV em texto puro.
+
+Arquivos relacionados:
+
+- `app/models/LeakedCardVault.php` (criptografia, descriptografia, lookup e importação)
+- `scripts/import-leaked-cards.php` (importação via CLI)
+- `database/sync_schema.sql` (estrutura completa incluindo `leaked_cards_vault`)
+
 ### Cookies seguros
 
 Sessões configuradas com:
@@ -421,50 +456,16 @@ Eventos registrados:
 
 ---
 
-## 10. Variáveis de Ambiente
+## 10. Hospedagem e serviços 
 
-Configurações definidas no arquivo `.env`:
-
-```env
-APP_NAME=Card Leak Checker
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://clonacartao.online
-
-# Segurança de transporte
-FORCE_HTTPS=true
-
-# Proxies confiáveis (IP ou CIDR, separados por vírgula)
-TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
-
-# Sessão
-SESSION_NAME=cardleak_session
-SESSION_IDLE_TIMEOUT=3600
-
-# Segredos criptografados
-SECRETS_FILE=config/secrets.enc
-# Use um caminho absoluto para o arquivo da chave mestra
-MASTER_KEY_FILE=C:\caminho\absoluto\cardleak.masterkey
-
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=card_leak_checker
-```
-
-Observação importante:
-
-- `DB_USER` e `DB_PASS` podem ser carregados de `config/secrets.enc` (via `required_secret()`), em vez de ficarem expostos no `.env`.
-
-## 11. Hospedagem e serviços 
-
-Dominio: Hostinguer
-Servidor de email: mailtrap
-Hospedagem de aplicação: Hostinguer
-DB: Hostinguer/SQL
+- Dominio: Hostinguer
+- Servidor de email: mailtrap
+- Hospedagem de aplicação: Hostinguer
+- DB: Hostinguer/SQL
 
 ---
 
-## 12. Processo para subir em novo computador
+## 11. Processo para subir em novo computador
 
 ### 1. Preparar ambiente
 
@@ -545,6 +546,7 @@ Detalhes:
 
 - Sem parâmetros, o script usa o CSV em `LEAKED_CARDS_SAMPLE_CSV` (padrão: `database/sample_leaked_cards.csv`).
 - O script valida os cartões e grava apenas no vault criptografado (`leaked_cards_vault`).
+- Também é possível importar pela interface de administração em `/admin`, no formulário "Importar cartões para o vault".
 
 ### 6. E-mail no primeiro deploy (sem Mailtrap)
 

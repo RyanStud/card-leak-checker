@@ -205,5 +205,6 @@ $router->post('/privacy/delete-projects', [PrivacyController::class, 'deleteProj
 $router->post('/privacy/delete-account', [PrivacyController::class, 'deleteAccount']);
 
 $router->get('/admin', [AdminController::class, 'dashboard']);
+$router->post('/admin/import-cards', [AdminController::class, 'importCards']);
 
 $router->dispatch($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);
