@@ -1,5 +1,9 @@
 <?php
 
+if (!class_exists('TelegramAccount')) {
+    require_once __DIR__ . '/../models/TelegramAccount.php';
+}
+
 class DashboardController extends Controller
 {
     public function index(): void
@@ -8,10 +12,101 @@ class DashboardController extends Controller
 
         $userModel = new User();
         $user = $userModel->findById((int)$_SESSION['user_id']);
+        $telegramModel = new TelegramAccount();
+        $telegramAccount = $telegramModel->findByUserId((int)$_SESSION['user_id']);
+
+        $telegramBotUsername = trim((string)env('TELEGRAM_BOT_USERNAME', ''));
+        $telegramPendingLinkUrl = (string)($_SESSION['telegram_pending_link_url'] ?? '');
+        unset($_SESSION['telegram_pending_link_url']);
 
         $this->view('dashboard/index', [
             'user' => $user,
+            'telegramAccount' => $telegramAccount,
+            'telegramBotUsername' => $telegramBotUsername,
+            'telegramPendingLinkUrl' => $telegramPendingLinkUrl,
         ]);
+    }
+
+    public function requestTelegramLink(): void
+    {
+        AuthMiddleware::handle();
+        verify_csrf();
+
+        $botToken = trim((string)secret('APP_KEY_TELEGRAM', ''));
+        if ($botToken === '') {
+            set_flash('error', 'Bot Telegram nao configurado. Defina APP_KEY_TELEGRAM nos segredos.');
+            $this->redirect(base_path('/dashboard'));
+        }
+
+        $botUsername = trim((string)env('TELEGRAM_BOT_USERNAME', ''));
+        if ($botUsername === '') {
+            set_flash('error', 'Defina TELEGRAM_BOT_USERNAME no .env para gerar o link de vinculacao.');
+            $this->redirect(base_path('/dashboard'));
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_]{5,32}$/', $botUsername)) {
+            set_flash('error', 'TELEGRAM_BOT_USERNAME invalido.');
+            $this->redirect(base_path('/dashboard'));
+        }
+
+        $plainCode = bin2hex(random_bytes(16));
+        $telegramModel = new TelegramAccount();
+        $telegramModel->createOrRefreshPendingLink(
+            (int)$_SESSION['user_id'],
+            $plainCode,
+            date('Y-m-d H:i:s', time() + (15 * 60))
+        );
+
+        $_SESSION['telegram_pending_link_url'] = 'https://t.me/' . $botUsername . '?start=link_' . $plainCode;
+
+        set_flash('success', 'Link de vinculacao Telegram gerado. Validade: 15 minutos.');
+        $this->redirect(base_path('/dashboard'));
+    }
+
+    public function saveTelegramPreferences(): void
+    {
+        AuthMiddleware::handle();
+        verify_csrf();
+
+        $usernameRaw = trim((string)($_POST['telegram_username'] ?? ''));
+        $phoneDigits = clean_numeric_text($_POST['telegram_phone'] ?? '');
+        $notificationsEnabled = !empty($_POST['notifications_enabled']) ? 1 : 0;
+
+        if ($usernameRaw !== '' && preg_match('/^@?[A-Za-z0-9_]{5,32}$/', $usernameRaw) !== 1) {
+            set_flash('error', 'Username do Telegram invalido. Use de 5 a 32 caracteres (letras, numeros e underscore).');
+            $this->redirect(base_path('/dashboard'));
+        }
+
+        if ($phoneDigits !== '' && (strlen($phoneDigits) < 10 || strlen($phoneDigits) > 15)) {
+            set_flash('error', 'Telefone do Telegram invalido. Use DDI + DDD + numero (10 a 15 digitos).');
+            $this->redirect(base_path('/dashboard'));
+        }
+
+        $normalizedUsername = ltrim($usernameRaw, '@');
+        $normalizedPhone = $phoneDigits === '' ? null : '+' . $phoneDigits;
+
+        $telegramModel = new TelegramAccount();
+        $telegramModel->saveUserPreferences(
+            (int)$_SESSION['user_id'],
+            $normalizedUsername !== '' ? $normalizedUsername : null,
+            $normalizedPhone,
+            $notificationsEnabled
+        );
+
+        set_flash('success', 'Preferencias do Telegram salvas com sucesso.');
+        $this->redirect(base_path('/dashboard'));
+    }
+
+    public function unlinkTelegram(): void
+    {
+        AuthMiddleware::handle();
+        verify_csrf();
+
+        $telegramModel = new TelegramAccount();
+        $telegramModel->unlinkByUserId((int)$_SESSION['user_id']);
+
+        set_flash('success', 'Conta do Telegram desvinculada com sucesso.');
+        $this->redirect(base_path('/dashboard'));
     }
 
     public function updateProfile(): void

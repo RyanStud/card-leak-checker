@@ -143,6 +143,37 @@ CREATE TABLE IF NOT EXISTS password_resets (
         REFERENCES users(id) 
         ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS telegram_accounts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    telegram_user_id BIGINT NULL UNIQUE,
+    telegram_username VARCHAR(32) NULL,
+    telegram_first_name VARCHAR(120) NULL,
+    telegram_last_name VARCHAR(120) NULL,
+    telegram_phone VARCHAR(20) NULL,
+    notifications_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    is_active TINYINT(1) NOT NULL DEFAULT 0,
+    link_code_hash CHAR(64) NULL,
+    link_code_expires_at DATETIME NULL,
+    login_code_hash CHAR(64) NULL,
+    login_code_expires_at DATETIME NULL,
+    login_code_sent_at DATETIME NULL,
+    linked_at DATETIME NULL,
+    last_interaction_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_telegram_accounts_user (user_id),
+    UNIQUE KEY uq_telegram_accounts_link_code (link_code_hash),
+    INDEX idx_telegram_accounts_login_code_expires (login_code_expires_at),
+    INDEX idx_telegram_accounts_is_active (is_active),
+    INDEX idx_telegram_accounts_expires (link_code_expires_at),
+    CONSTRAINT fk_telegram_accounts_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS blocked_ips (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ip_address VARCHAR(45) NOT NULL UNIQUE,
@@ -162,4 +193,15 @@ CREATE TABLE IF NOT EXISTS request_logs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_request_logs_ip_created (ip_address, created_at),
     INDEX idx_request_logs_created (created_at)
+);
+CREATE TABLE IF NOT EXISTS leaked_cards_vault (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    card_lookup_hash CHAR(64) NOT NULL,
+    payload_ciphertext MEDIUMBLOB NOT NULL,
+    payload_iv VARBINARY(12) NOT NULL,
+    payload_tag VARBINARY(16) NOT NULL,
+    source_batch VARCHAR(80) NOT NULL DEFAULT 'sample-local',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_card_lookup_hash (card_lookup_hash),
+    INDEX idx_source_batch_created (source_batch, created_at)
 );
