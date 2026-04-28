@@ -34,3 +34,24 @@ function logout_user(): void
         session_destroy();
     }
 }
+
+function is_admin_user(): bool
+{
+    if (!is_logged_in()) {
+        return false;
+    }
+
+    $userModel = new User();
+    $sessionUser = $userModel->findById((int)$_SESSION['user_id']);
+
+    return (($sessionUser['role'] ?? 'user') === 'admin');
+}
+
+function can_view_admin_area(): bool
+{
+    if (!is_admin_user()) {
+        return false;
+    }
+
+    return (($_SESSION['admin_access_mode'] ?? 'restricted') === 'privileged');
+}

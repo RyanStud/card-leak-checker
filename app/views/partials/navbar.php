@@ -1,16 +1,7 @@
 <?php
 $requestPath = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
 
-$isAdmin = false;
-if (is_logged_in()) {
-    if (isset($user['role'])) {
-        $isAdmin = (($user['role'] ?? 'user') === 'admin');
-    } elseif (!empty($_SESSION['user_id'])) {
-        $userModel = new User();
-        $sessionUser = $userModel->findById((int)$_SESSION['user_id']);
-        $isAdmin = (($sessionUser['role'] ?? 'user') === 'admin');
-    }
-}
+$isAdmin = is_logged_in() && can_view_admin_area();
 
 $links = [];
 
@@ -25,6 +16,7 @@ if (is_logged_in()) {
 
     if ($isAdmin) {
         $links[] = ['/admin', 'Admin'];
+        $links[] = ['/admin/users', 'Usuarios'];
         $links[] = ['/projects/approval', 'Aprovacoes'];
         $links[] = ['/projects/approval-history', 'Hist. aprovacoes'];
     }

@@ -209,6 +209,33 @@ CREATE TABLE IF NOT EXISTS request_logs (
     INDEX idx_request_logs_created (created_at)
 );
 
+CREATE TABLE IF NOT EXISTS admin_role_change_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    requested_by_user_id INT NOT NULL,
+    target_user_id INT NOT NULL,
+    from_role VARCHAR(20) NOT NULL,
+    to_role VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    reviewed_by_user_id INT NULL,
+    reviewed_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_admin_role_change_status_created (status, created_at),
+    INDEX idx_admin_role_change_target_status (target_user_id, status),
+    CONSTRAINT fk_admin_role_change_requested_by
+        FOREIGN KEY (requested_by_user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_admin_role_change_target
+        FOREIGN KEY (target_user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_admin_role_change_reviewed_by
+        FOREIGN KEY (reviewed_by_user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS leaked_cards_vault (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     card_lookup_hash CHAR(64) NOT NULL,
@@ -289,3 +316,15 @@ ALTER TABLE password_resets
 
 ALTER TABLE email_verifications
     ADD INDEX IF NOT EXISTS idx_email_verifications_token_valid (token_hash, used_at, expires_at);
+
+ALTER TABLE admin_role_change_requests
+    ADD COLUMN IF NOT EXISTS requested_by_user_id INT NOT NULL,
+    ADD COLUMN IF NOT EXISTS target_user_id INT NOT NULL,
+    ADD COLUMN IF NOT EXISTS from_role VARCHAR(20) NOT NULL,
+    ADD COLUMN IF NOT EXISTS to_role VARCHAR(20) NOT NULL,
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    ADD COLUMN IF NOT EXISTS reviewed_by_user_id INT NULL,
+    ADD COLUMN IF NOT EXISTS reviewed_at DATETIME NULL,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ADD INDEX IF NOT EXISTS idx_admin_role_change_status_created (status, created_at),
+    ADD INDEX IF NOT EXISTS idx_admin_role_change_target_status (target_user_id, status);

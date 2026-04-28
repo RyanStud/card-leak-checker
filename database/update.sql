@@ -49,6 +49,33 @@ CREATE TABLE IF NOT EXISTS telegram_accounts (
         ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS admin_role_change_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    requested_by_user_id INT NOT NULL,
+    target_user_id INT NOT NULL,
+    from_role VARCHAR(20) NOT NULL,
+    to_role VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    reviewed_by_user_id INT NULL,
+    reviewed_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_admin_role_change_status_created (status, created_at),
+    INDEX idx_admin_role_change_target_status (target_user_id, status),
+    CONSTRAINT fk_admin_role_change_requested_by
+        FOREIGN KEY (requested_by_user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_admin_role_change_target
+        FOREIGN KEY (target_user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_admin_role_change_reviewed_by
+        FOREIGN KEY (reviewed_by_user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
+);
+
 ALTER TABLE login_attempts
     ADD INDEX IF NOT EXISTS idx_login_attempts_ip_attempted (ip_address, attempted_at),
     ADD INDEX IF NOT EXISTS idx_login_attempts_email_attempted (email, attempted_at);
@@ -90,3 +117,15 @@ ALTER TABLE telegram_accounts
     ADD INDEX IF NOT EXISTS idx_telegram_accounts_login_code_expires (login_code_expires_at),
     ADD INDEX IF NOT EXISTS idx_telegram_accounts_is_active (is_active),
     ADD INDEX IF NOT EXISTS idx_telegram_accounts_expires (link_code_expires_at);
+
+ALTER TABLE admin_role_change_requests
+    ADD COLUMN IF NOT EXISTS requested_by_user_id INT NOT NULL,
+    ADD COLUMN IF NOT EXISTS target_user_id INT NOT NULL,
+    ADD COLUMN IF NOT EXISTS from_role VARCHAR(20) NOT NULL,
+    ADD COLUMN IF NOT EXISTS to_role VARCHAR(20) NOT NULL,
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    ADD COLUMN IF NOT EXISTS reviewed_by_user_id INT NULL,
+    ADD COLUMN IF NOT EXISTS reviewed_at DATETIME NULL,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ADD INDEX IF NOT EXISTS idx_admin_role_change_status_created (status, created_at),
+    ADD INDEX IF NOT EXISTS idx_admin_role_change_target_status (target_user_id, status);

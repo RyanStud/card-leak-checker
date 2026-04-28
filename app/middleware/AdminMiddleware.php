@@ -47,6 +47,12 @@ class AdminMiddleware
             exit('Acesso restrito ao administrador.');
         }
 
+        if (!can_view_admin_area()) {
+            set_flash('error', 'Sessao sem permissao para funcoes administrativas.');
+            header('Location: ' . base_path('/dashboard'));
+            exit;
+        }
+
         return $user;
     }
 

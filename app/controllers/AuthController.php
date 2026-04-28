@@ -4,7 +4,10 @@ class AuthController extends Controller
 {
     public function showRegister(): void
     {
-        $this->view('auth/register');
+        $captcha = captcha_get_or_create('register');
+        $this->view('auth/register', [
+            'captchaQuestion' => $captcha['question'] ?? '',
+        ]);
     }
 
     public function register(): void
@@ -15,6 +18,7 @@ class AuthController extends Controller
         $email = clean_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $lgpdConsent = $_POST['lgpd_consent'] ?? '';
+        $captchaAnswer = clean_numeric_text($_POST['captcha_answer'] ?? '');
 
         $_SESSION['old'] = [
             'name' => $name,
@@ -34,6 +38,12 @@ class AuthController extends Controller
 
         if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/', $password)) {
             set_flash('error', 'A senha deve ter no mínimo 12 caracteres, com maiúscula, minúscula, número e símbolo.');
+            $this->redirect(base_path('/register'));
+        }
+
+        if (!captcha_validate('register', $captchaAnswer)) {
+            captcha_reset('register');
+            set_flash('error', 'Captcha inválido. Tente novamente.');
             $this->redirect(base_path('/register'));
         }
 
@@ -79,7 +89,13 @@ class AuthController extends Controller
 
     public function showLogin(): void
     {
-        $this->view('auth/login');
+        $captcha = captcha_get_or_create('login');
+        $adminCaptcha = captcha_get_or_create('admin_passwordless');
+
+        $this->view('auth/login', [
+            'captchaQuestion' => $captcha['question'] ?? '',
+            'adminCaptchaQuestion' => $adminCaptcha['question'] ?? '',
+        ]);
     }
 
     public function showRegisterConfirmation(): void
@@ -120,7 +136,14 @@ class AuthController extends Controller
 
         $email = clean_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        $captchaAnswer = clean_numeric_text($_POST['captcha_answer'] ?? '');
         $ip = client_ip();
+
+        if (!captcha_validate('login', $captchaAnswer)) {
+            captcha_reset('login');
+            set_flash('error', 'Captcha inválido. Tente novamente.');
+            $this->redirect(base_path('/login'));
+        }
 
         $loginAttemptModel = new LoginAttempt();
         $suspiciousModel = new SuspiciousEvent();
@@ -184,6 +207,164 @@ class AuthController extends Controller
         $this->redirect(base_path('/2fa/verify'));
     }
 
+    public function showAdminPasswordless(): void
+    {
+        $captcha = captcha_get_or_create('admin_passwordless');
+        $this->view('auth/admin-passwordless', [
+            'captchaQuestion' => $captcha['question'] ?? '',
+        ]);
+    }
+
+    public function requestAdminPasswordless(): void
+    {
+        verify_csrf();
+
+        $email = clean_email($_POST['email'] ?? '');
+        $captchaAnswer = clean_numeric_text($_POST['captcha_answer'] ?? '');
+
+        if (!captcha_validate('admin_passwordless', $captchaAnswer)) {
+            captcha_reset('admin_passwordless');
+            set_flash('error', 'Captcha inválido.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $userModel = new User();
+        $user = $userModel->findByEmail($email);
+
+        if (!$user || ($user['role'] ?? 'user') !== 'admin' || (int)($user['email_verified'] ?? 0) !== 1) {
+            set_flash('success', 'Se o e-mail informado estiver habilitado, um código será enviado em instantes.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $mode = strtolower(trim((string)env('TELEGRAM_MODE', 'api')));
+        $userId = (int)$user['id'];
+
+        if ($mode === 'log') {
+            $lastSentAt = (int)($_SESSION['admin_passwordless_code_sent_at'] ?? 0);
+            if ($lastSentAt > 0 && (time() - $lastSentAt) < 30) {
+                set_flash('error', 'Aguarde 30 segundos para solicitar novo código.');
+                $this->redirect(base_path('/admin/passwordless'));
+            }
+
+            $code = (string)random_int(100000, 999999);
+            $_SESSION['admin_passwordless_user_id'] = $userId;
+            $_SESSION['admin_passwordless_code_hash'] = hash('sha256', $code);
+            $_SESSION['admin_passwordless_code_expires'] = time() + 300;
+            $_SESSION['admin_passwordless_code_sent_at'] = time();
+
+            app_log('admin_passwordless_log_mode user_id=' . (string)$userId . ' code=' . $code . ' expires_in=300s');
+
+            set_flash('success', 'Código gerado em modo local. Verifique storage/logs/app.log.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $telegramModel = new TelegramAccount();
+        $telegramAccount = $telegramModel->findByUserId($userId);
+
+        if (!$telegramAccount || empty($telegramAccount['telegram_user_id']) || empty($telegramAccount['is_active'])) {
+            set_flash('success', 'Se o e-mail informado estiver habilitado, um código será enviado em instantes.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $lastSentRaw = trim((string)($telegramAccount['login_code_sent_at'] ?? ''));
+        if ($lastSentRaw !== '') {
+            $lastSentTs = strtotime($lastSentRaw);
+            if ($lastSentTs !== false && (time() - $lastSentTs) < 30) {
+                set_flash('error', 'Aguarde 30 segundos para solicitar novo código.');
+                $this->redirect(base_path('/admin/passwordless'));
+            }
+        }
+
+        $code = (string)random_int(100000, 999999);
+        $saved = $telegramModel->issueLoginCode($userId, $code, date('Y-m-d H:i:s', time() + 300));
+
+        if (!$saved) {
+            set_flash('error', 'Não foi possível preparar o código de acesso.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $sent = telegram_send_message(
+            (int)$telegramAccount['telegram_user_id'],
+            'Seu código de acesso admin passwordless: ' . $code . ' (válido por 5 minutos).'
+        );
+
+        if (!$sent) {
+            set_flash('error', 'Falha ao enviar código no Telegram.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $_SESSION['admin_passwordless_user_id'] = $userId;
+        $_SESSION['pre_2fa_user_id'] = $userId;
+        $_SESSION['pre_2fa_email'] = $user['email'];
+        set_flash('success', 'Código enviado no Telegram.');
+        $this->redirect(base_path('/admin/passwordless'));
+    }
+
+    public function verifyAdminPasswordless(): void
+    {
+        verify_csrf();
+
+        $code = clean_numeric_text($_POST['code'] ?? '');
+        $userId = (int)($_SESSION['admin_passwordless_user_id'] ?? 0);
+
+        if ($userId <= 0 || preg_match('/^\d{6}$/', $code) !== 1) {
+            set_flash('error', 'Código inválido.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $userModel = new User();
+        $user = $userModel->findById($userId);
+        if (!$user || ($user['role'] ?? 'user') !== 'admin') {
+            set_flash('error', 'Administrador inválido para acesso passwordless.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $mode = strtolower(trim((string)env('TELEGRAM_MODE', 'api')));
+        if ($mode === 'log') {
+            $expectedHash = (string)($_SESSION['admin_passwordless_code_hash'] ?? '');
+            $expiresAt = (int)($_SESSION['admin_passwordless_code_expires'] ?? 0);
+
+            $ok = ($expectedHash !== '')
+                && $expiresAt >= time()
+                && hash_equals($expectedHash, hash('sha256', $code));
+
+            if ($ok) {
+                unset(
+                    $_SESSION['admin_passwordless_code_hash'],
+                    $_SESSION['admin_passwordless_code_expires'],
+                    $_SESSION['admin_passwordless_code_sent_at']
+                );
+            }
+        } else {
+            $telegramModel = new TelegramAccount();
+            $ok = $telegramModel->consumeValidLoginCode($userId, $code);
+        }
+
+        if (!$ok) {
+            $suspiciousModel = new SuspiciousEvent();
+            $suspiciousModel->create(
+                $userId,
+                $user['email'],
+                client_ip(),
+                'admin_passwordless_code_invalid',
+                'Tentativa com código inválido no login passwordless admin'
+            );
+
+            set_flash('error', 'Código incorreto ou expirado.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $_SESSION['pre_2fa_user_id'] = $userId;
+        $_SESSION['pre_2fa_email'] = $user['email'];
+        $_SESSION['admin_passwordless_user_id'] = $userId;
+
+        if ((int)$user['two_factor_enabled'] !== 1 || empty($user['two_factor_secret'])) {
+            $this->redirect(base_path('/2fa/setup'));
+        }
+
+        $this->redirect(base_path('/2fa/verify'));
+    }
+
     public function showSetup2FA(): void
     {
         if (empty($_SESSION['pre_2fa_user_id'])) {
@@ -230,17 +411,47 @@ class AuthController extends Controller
         $userId = (int)$_SESSION['pre_2fa_user_id'];
         $userModel = new User();
         $userModel->saveTwoFactorSecret($userId, $secret);
+        $user = $userModel->findById($userId);
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['two_factor_verified'] = true;
         $_SESSION['session_ip'] = client_ip();
         $_SESSION['session_ua_hash'] = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '-'));
+        $_SESSION['admin_access_mode'] = !empty($_SESSION['admin_passwordless_user_id']) ? 'privileged' : ((($user['role'] ?? 'user') === 'admin') ? 'restricted' : 'none');
+        $_SESSION['admin_elevated_until'] = 0;
+
+        if (!empty($_SESSION['admin_passwordless_user_id'])) {
+            $ttl = (int)env('ADMIN_ELEVATION_TTL', 900);
+            if ($ttl < 60) {
+                $ttl = 900;
+            }
+
+            $_SESSION['admin_elevated_until'] = time() + $ttl;
+
+            $audit = new AuditLog();
+            $audit->create(
+                $userId,
+                null,
+                'admin_passwordless_login',
+                json_encode([
+                    'mode' => 'telegram_then_mfa_setup',
+                    'elevated_until' => date('Y-m-d H:i:s', (int)$_SESSION['admin_elevated_until']),
+                ], JSON_UNESCAPED_UNICODE)
+            );
+
+            unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email'], $_SESSION['temp_2fa_secret']);
+            unset($_SESSION['admin_passwordless_user_id']);
+
+            session_regenerate_id(true);
+            set_flash('success', 'Acesso admin passwordless concluído com sucesso.');
+            $this->redirect(base_path('/admin'));
+        }
 
         unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email'], $_SESSION['temp_2fa_secret']);
 
         session_regenerate_id(true);
 
-        $this->redirect(base_path('/dashboard'));
+        $this->redirect(base_path('/admin'));
     }
 
     public function showVerify2FA(): void
@@ -289,6 +500,35 @@ class AuthController extends Controller
         $_SESSION['two_factor_verified'] = true;
         $_SESSION['session_ip'] = client_ip();
         $_SESSION['session_ua_hash'] = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '-'));
+        $_SESSION['admin_access_mode'] = !empty($_SESSION['admin_passwordless_user_id']) ? 'privileged' : ((($user['role'] ?? 'user') === 'admin') ? 'restricted' : 'none');
+        $_SESSION['admin_elevated_until'] = 0;
+
+        if (!empty($_SESSION['admin_passwordless_user_id'])) {
+            $ttl = (int)env('ADMIN_ELEVATION_TTL', 900);
+            if ($ttl < 60) {
+                $ttl = 900;
+            }
+
+            $_SESSION['admin_elevated_until'] = time() + $ttl;
+
+            $audit = new AuditLog();
+            $audit->create(
+                $userId,
+                null,
+                'admin_passwordless_login',
+                json_encode([
+                    'mode' => 'telegram_then_mfa',
+                    'elevated_until' => date('Y-m-d H:i:s', (int)$_SESSION['admin_elevated_until']),
+                ], JSON_UNESCAPED_UNICODE)
+            );
+
+            unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email']);
+            unset($_SESSION['admin_passwordless_user_id']);
+
+            session_regenerate_id(true);
+            set_flash('success', 'Acesso admin passwordless concluído com sucesso.');
+            $this->redirect(base_path('/admin'));
+        }
 
         unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email']);
 

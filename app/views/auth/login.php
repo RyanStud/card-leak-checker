@@ -32,6 +32,12 @@
             <input type="password" name="password" required>
         </div>
 
+        <div class="captcha-box" role="group" aria-label="Desafio captcha">
+            <p class="captcha-box__label">Captcha</p>
+            <p class="captcha-box__question"><?= e($captchaQuestion ?? '') ?></p>
+            <input type="text" name="captcha_answer" inputmode="numeric" placeholder="Digite o resultado" required>
+        </div>
+
         <button type="submit">Entrar</button>
     </form>
 
