@@ -72,11 +72,22 @@ if (!$isHttps && $isFromTrustedProxy) {
 
 $forceHttps = filter_var(env('FORCE_HTTPS', $appEnv === 'production'), FILTER_VALIDATE_BOOL);
 if ($forceHttps && !$isHttps && !headers_sent()) {
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+    $appUrlRaw = getenv('APP_URL');
+    $appUrl = is_string($appUrlRaw) ? trim($appUrlRaw) : '';
+    $appUrlParts = $appUrl !== '' ? parse_url($appUrl) : false;
 
-    if ($host !== '') {
-        header('Location: https://' . $host . $uri, true, 301);
+    $canonicalHost = is_array($appUrlParts) && !empty($appUrlParts['host'])
+        ? strtolower((string) $appUrlParts['host'])
+        : '';
+    $canonicalPort = is_array($appUrlParts) && isset($appUrlParts['port']) && is_int($appUrlParts['port'])
+        ? ':' . (string) $appUrlParts['port']
+        : '';
+    $canonicalPath = is_array($appUrlParts) && isset($appUrlParts['path'])
+        ? '/' . ltrim((string) $appUrlParts['path'], '/')
+        : '/';
+
+    if ($canonicalHost !== '') {
+        header('Location: https://' . $canonicalHost . $canonicalPort . $canonicalPath, true, 301);
         exit;
     }
 }
@@ -84,7 +95,7 @@ if ($forceHttps && !$isHttps && !headers_sent()) {
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://viacep.com.br;");
+header("Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; img-src 'self' data: https://api.qrserver.com; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://viacep.com.br;");
 
 if ($isHttps) {
     header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
@@ -124,6 +135,7 @@ require __DIR__ . '/app/middleware/SecurityMiddleware.php';
 require __DIR__ . '/app/models/User.php';
 require __DIR__ . '/app/models/Project.php';
 require __DIR__ . '/app/models/CardCheckRequest.php';
+require __DIR__ . '/app/models/LeakedCardVault.php';
 require __DIR__ . '/app/models/AuditLog.php';
 require __DIR__ . '/app/models/Privacy.php';
 require __DIR__ . '/app/models/LoginAttempt.php';
@@ -193,5 +205,6 @@ $router->post('/privacy/delete-projects', [PrivacyController::class, 'deleteProj
 $router->post('/privacy/delete-account', [PrivacyController::class, 'deleteAccount']);
 
 $router->get('/admin', [AdminController::class, 'dashboard']);
+$router->post('/admin/import-cards', [AdminController::class, 'importCards']);
 
 $router->dispatch($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);

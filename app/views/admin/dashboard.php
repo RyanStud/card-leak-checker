@@ -11,6 +11,28 @@
     <?php require __DIR__ . '/../partials/brand.php'; ?>
     <h1>Admin - Dashboard de Seguranca</h1>
 
+    <?php if ($msg = flash('error')): ?>
+        <p style="color:red;"><?= e($msg) ?></p>
+    <?php endif; ?>
+
+    <?php if ($msg = flash('success')): ?>
+        <p style="color:green;"><?= e($msg) ?></p>
+    <?php endif; ?>
+
+    <form method="POST" action="<?= e(base_path('/admin/import-cards')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+        <div>
+            <label for="csv_path">CSV para importacao</label><br>
+            <input id="csv_path" type="text" name="csv_path" placeholder="database/sample_leaked_cards.csv">
+            <small class="field-hint">Use caminho relativo ao projeto ou absoluto no servidor.</small>
+        </div>
+        <div>
+            <label for="source_batch">Nome do lote (opcional)</label><br>
+            <input id="source_batch" type="text" name="source_batch" placeholder="admin-<?= e(date('Ymd-His')) ?>">
+        </div>
+        <button type="submit">Importar cartoes para o vault</button>
+    </form>
+
     <form class="filter-form" method="GET" action="<?= e(base_path('/admin')) ?>">
         <label for="range"><strong>Periodo de exibicao:</strong></label>
         <select id="range" name="range">

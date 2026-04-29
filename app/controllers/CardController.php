@@ -21,6 +21,9 @@ class CardController extends Controller
 
         $projectId = (int)($_POST['project_id'] ?? 0);
         $cardNumber = clean_numeric_text($_POST['card_number'] ?? '');
+        $expiryMonth = clean_numeric_text($_POST['expiry_month'] ?? '');
+        $expiryYear = clean_numeric_text($_POST['expiry_year'] ?? '');
+        $cvv = clean_numeric_text($_POST['cvv'] ?? '');
 
         $projectModel = new Project();
 
@@ -49,7 +52,7 @@ class CardController extends Controller
         $digits = card_digits_only($cardNumber);
 
         if (!looks_like_valid_card($digits)) {
-            set_flash('error', 'Número de cartão inválido para demonstração.');
+            set_flash('error', 'Número de cartão inválido.');
             $this->redirect(base_path('/check-card'));
         }
 
@@ -58,10 +61,37 @@ class CardController extends Controller
             $this->redirect(base_path('/check-card'));
         }
 
+        $expiryMonth = str_pad(substr($expiryMonth, 0, 2), 2, '0', STR_PAD_LEFT);
+        $expiryYear = substr($expiryYear, 0, 4);
+        $cvv = substr($cvv, 0, 4);
+
+        if (preg_match('/^\d{2}$/', $expiryMonth) !== 1 || (int)$expiryMonth < 1 || (int)$expiryMonth > 12) {
+            set_flash('error', 'Mês de validade inválido.');
+            $this->redirect(base_path('/check-card'));
+        }
+
+        if (preg_match('/^\d{4}$/', $expiryYear) !== 1) {
+            set_flash('error', 'Ano de validade inválido.');
+            $this->redirect(base_path('/check-card'));
+        }
+
+        if (preg_match('/^\d{3,4}$/', $cvv) !== 1) {
+            set_flash('error', 'CVV inválido.');
+            $this->redirect(base_path('/check-card'));
+        }
+
         $binMasked = mask_bin($digits);
         $last4Masked = mask_last4($digits);
         $fingerprint = card_fingerprint($digits);
-        $resultStatus = demo_card_leak_check($digits);
+
+        try {
+            $vault = new LeakedCardVault();
+            $isLeaked = $vault->isLeakedCard($digits, $expiryMonth, $expiryYear, $cvv);
+        } catch (Throwable $e) {
+            set_flash('error', 'Base de vazamentos indisponível no momento. Verifique a configuração do vault.');
+            $this->redirect(base_path('/check-card'));
+        }
+        $resultStatus = $isLeaked ? 'possible_leak_found' : 'no_evidence_found';
 
         $cardCheckModel = new CardCheckRequest();
         $cardCheckModel->create(
@@ -71,7 +101,7 @@ class CardController extends Controller
             $binMasked,
             $last4Masked,
             $resultStatus,
-            'demo-local'
+            'encrypted-vault'
         );
 
         $audit = new AuditLog();
@@ -83,7 +113,9 @@ class CardController extends Controller
                 'bin_masked' => $binMasked,
                 'last4' => $last4Masked,
                 'result' => $resultStatus,
-                'luhn_validated' => true
+                'luhn_validated' => true,
+                'expiry_month' => $expiryMonth,
+                'expiry_year' => $expiryYear
             ], JSON_UNESCAPED_UNICODE)
         );
 

@@ -26,6 +26,16 @@
         </div>
     <?php endif; ?>
 
+    <section class="cards-info-box">
+        <h3 class="cards-info-box__title">Por que é necessário criar e aprovar um projeto?</h3>
+        <p class="cards-info-box__intro">A consulta de cartão exige um projeto para garantir uso responsável e rastreável da plataforma.</p>
+        <ul class="cards-info-box__list">
+            <li>Cada consulta fica vinculada a um objetivo formal (ex.: prevenção a fraude em um sistema específico).</li>
+            <li>A aprovação do projeto impede uso indevido da ferramenta para consultas sem justificativa.</li>
+            <li>O vínculo com projeto permite auditoria e histórico de quem consultou, quando e para qual finalidade.</li>
+        </ul>
+    </section>
+
     <?php if (empty($projects)): ?>
         <p>Você precisa criar um projeto antes de consultar.</p>
     <?php else: ?>
@@ -41,7 +51,7 @@
                             $status = $project['approval_status'] ?? 'pending';
                             $statusText = '';
                             $disabled = false;
-                            
+
                             if ($status === 'approved') {
                                 $statusText = ' ✓ Aprovado';
                             } elseif ($status === 'pending') {
@@ -60,17 +70,27 @@
             </div>
 
             <div>
-                <label>Número do cartão (apenas para demonstração)</label><br>
-                <input type="text" name="card_number" placeholder="Ex: 4111111111111111" required>
+                <label>Número do cartão</label><br>
+                <input type="text" name="card_number" placeholder="Ex: 4111111111111111" maxlength="19" required>
+            </div>
+
+            <div>
+                <label>Mês de validade (MM)</label><br>
+                <input type="text" name="expiry_month" placeholder="Ex: 08" maxlength="2" required>
+            </div>
+
+            <div>
+                <label>Ano de validade (AAAA)</label><br>
+                <input type="text" name="expiry_year" placeholder="Ex: 2029" maxlength="4" required>
+            </div>
+
+            <div>
+                <label>CVV</label><br>
+                <input type="password" name="cvv" placeholder="Ex: 123" maxlength="4" required>
             </div>
 
             <button type="submit">Verificar</button>
         </form>
-
-        <p style="margin-top:16px;">
-            Para teste rápido, finais <strong>1111</strong>, <strong>1234</strong>, <strong>9999</strong> e <strong>0000</strong>
-            retornam “possible_leak_found”.
-        </p>
     <?php endif; ?>
     <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
