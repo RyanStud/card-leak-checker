@@ -19,18 +19,20 @@
         <p style="color:green;"><?= e($msg) ?></p>
     <?php endif; ?>
 
-    <form method="POST" action="<?= e(base_path('/admin/import-cards')) ?>">
+    <h2>Aviso via Telegram</h2>
+    <form method="POST" action="<?= e(base_path('/admin/send-telegram-notice')) ?>">
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
         <div>
-            <label for="csv_path">CSV para importacao</label><br>
-            <input id="csv_path" type="text" name="csv_path" placeholder="database/sample_leaked_cards.csv">
-            <small class="field-hint">Use caminho relativo ao projeto ou absoluto no servidor.</small>
+            <label for="message">Mensagem do aviso</label><br>
+            <textarea id="message" name="message" rows="3" maxlength="900" placeholder="Ex: Sistema em manutenção hoje às 23h." required></textarea>
         </div>
         <div>
-            <label for="source_batch">Nome do lote (opcional)</label><br>
-            <input id="source_batch" type="text" name="source_batch" placeholder="admin-<?= e(date('Ymd-His')) ?>">
+            <label>
+                <input type="checkbox" name="only_admins" value="1">
+                Enviar apenas para usuarios admin
+            </label>
         </div>
-        <button type="submit">Importar cartoes para o vault</button>
+        <button type="submit">Enviar aviso Telegram</button>
     </form>
 
     <form class="filter-form" method="GET" action="<?= e(base_path('/admin')) ?>">
@@ -277,6 +279,21 @@
             </tr>
         <?php endforeach; ?>
     </table>
+
+    <h2>Importar cartoes para o vault</h2>
+    <form method="POST" action="<?= e(base_path('/admin/import-cards')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+        <div>
+            <label for="csv_path">CSV para importacao</label><br>
+            <input id="csv_path" type="text" name="csv_path" placeholder="database/sample_leaked_cards.csv">
+            <small class="field-hint">Use caminho relativo ao projeto ou absoluto no servidor.</small>
+        </div>
+        <div>
+            <label for="source_batch">Nome do lote (opcional)</label><br>
+            <input id="source_batch" type="text" name="source_batch" placeholder="admin-<?= e(date('Ymd-His')) ?>">
+        </div>
+        <button type="submit">Importar cartoes para o vault</button>
+    </form>
     <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

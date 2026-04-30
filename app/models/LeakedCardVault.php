@@ -191,14 +191,10 @@ class LeakedCardVault
 
     private function resolveLookupPepper(): string
     {
-        $key = (string)secret('CARD_LOOKUP_PEPPER', '');
+        $key = (string)required_secret('CARD_LOOKUP_PEPPER');
 
-        if ($key === '') {
-            $key = (string)secret('APP_KEY', '');
-        }
-
-        if ($key === '') {
-            $key = (string)env('APP_NAME', 'card-leak-checker');
+        if (trim($key) === '') {
+            throw new RuntimeException('Segredo CARD_LOOKUP_PEPPER ausente.');
         }
 
         return $key;
@@ -206,14 +202,10 @@ class LeakedCardVault
 
     private function resolveEncryptionKey(): string
     {
-        $rawMaterial = (string)secret('CARD_VAULT_KEY', '');
+        $rawMaterial = (string)required_secret('CARD_VAULT_KEY');
 
-        if ($rawMaterial === '') {
-            $rawMaterial = (string)secret('APP_KEY', '');
-        }
-
-        if ($rawMaterial === '') {
-            $rawMaterial = 'card-leak-checker-local-key';
+        if (trim($rawMaterial) === '') {
+            throw new RuntimeException('Segredo CARD_VAULT_KEY ausente.');
         }
 
         if (str_starts_with($rawMaterial, 'base64:')) {

@@ -204,4 +204,76 @@ class User
 
         return $stmt->fetchAll();
     }
+
+    public function getUsersWithTelegramStatus(string $emailFilter = '', int $limit = 20, int $offset = 0): array
+    {
+        $sql = 'SELECT
+                    u.id,
+                    u.name,
+                    u.email,
+                    u.role,
+                    u.email_verified,
+                    u.two_factor_enabled,
+                    u.created_at,
+                    ta.telegram_user_id,
+                    ta.telegram_username,
+                    ta.telegram_phone,
+                    ta.is_active AS telegram_is_active
+                FROM users u
+                LEFT JOIN telegram_accounts ta ON ta.user_id = u.id';
+
+        $params = [];
+        if ($emailFilter !== '') {
+            $sql .= ' WHERE u.email LIKE ?';
+            $params[] = '%' . $emailFilter . '%';
+        }
+
+        $sql .= ' ORDER BY u.created_at DESC LIMIT ? OFFSET ?';
+        $params[] = $limit;
+        $params[] = $offset;
+
+        $stmt = $this->pdo->prepare($sql);
+        foreach ($params as $index => $value) {
+            $paramId = $index + 1;
+            if (is_int($value)) {
+                $stmt->bindValue($paramId, $value, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($paramId, $value, PDO::PARAM_STR);
+            }
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function countUsersWithTelegramStatus(string $emailFilter = ''): int
+    {
+        $sql = 'SELECT COUNT(*) AS total FROM users';
+        $params = [];
+
+        if ($emailFilter !== '') {
+            $sql .= ' WHERE email LIKE ?';
+            $params[] = '%' . $emailFilter . '%';
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $row = $stmt->fetch();
+
+        return (int)($row['total'] ?? 0);
+    }
+
+    public function updateRole(int $userId, string $role): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE users SET role = ? WHERE id = ?');
+        return $stmt->execute([$role, $userId]);
+    }
+
+    public function countAdmins(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) AS total FROM users WHERE role = 'admin'");
+        $row = $stmt->fetch();
+
+        return (int)($row['total'] ?? 0);
+    }
 }

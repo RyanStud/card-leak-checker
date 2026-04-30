@@ -2,6 +2,24 @@
 
 class PrivacyController extends Controller
 {
+    public function saveCookieConsent(): void
+    {
+        verify_csrf();
+
+        $mode = clean_text($_POST['mode'] ?? 'essential');
+        $analytics = $mode === 'all';
+
+        cookie_consent_set($analytics);
+
+        $redirectTo = clean_text($_POST['redirect_to'] ?? '');
+        if ($redirectTo === '' || !str_starts_with($redirectTo, '/')) {
+            $redirectTo = '/';
+        }
+
+        set_flash('success', 'Preferências de cookies salvas com sucesso.');
+        $this->redirect(base_path($redirectTo));
+    }
+
     public function about(): void
     {
         $this->view('about/index');

@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="<?= e(base_path('/public/assets/css/theme.css')) ?>">
     <title>Sobre nos</title>
 </head>
-<body>
+<body data-secret-access-url="<?= e(base_path('/admin/passwordless')) ?>">
     <?php require __DIR__ . '/../partials/navbar.php'; ?>
     <?php require __DIR__ . '/../partials/brand.php'; ?>
 
@@ -42,6 +42,9 @@
             melhorar a experiencia dos usuarios em cada nova versao.
         </p>
     </section>
+
+    <script src="<?= e(base_path('/public/js/about-secret-access.js')) ?>" defer></script>
+
     <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

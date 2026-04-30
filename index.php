@@ -126,7 +126,10 @@ require __DIR__ . '/app/helpers/otp.php';
 require __DIR__ . '/app/helpers/security.php';
 require __DIR__ . '/app/helpers/logger.php';
 require __DIR__ . '/app/helpers/mailer.php';
+require __DIR__ . '/app/helpers/telegram.php';
 require __DIR__ . '/app/helpers/security_view.php';
+require __DIR__ . '/app/helpers/captcha.php';
+require __DIR__ . '/app/helpers/cookies.php';
 
 require __DIR__ . '/app/middleware/AuthMiddleware.php';
 require __DIR__ . '/app/middleware/AdminMiddleware.php';
@@ -144,6 +147,8 @@ require __DIR__ . '/app/models/PasswordReset.php';
 require __DIR__ . '/app/models/EmailVerification.php';
 require __DIR__ . '/app/models/AdminDashboard.php';
 require __DIR__ . '/app/models/SecurityMonitor.php';
+require __DIR__ . '/app/models/TelegramAccount.php';
+require __DIR__ . '/app/models/AdminRoleChangeRequest.php';
 
 require __DIR__ . '/app/controllers/AuthController.php';
 require __DIR__ . '/app/controllers/DashboardController.php';
@@ -151,6 +156,7 @@ require __DIR__ . '/app/controllers/ProjectController.php';
 require __DIR__ . '/app/controllers/CardController.php';
 require __DIR__ . '/app/controllers/PrivacyController.php';
 require __DIR__ . '/app/controllers/AdminController.php';
+require __DIR__ . '/app/controllers/TelegramController.php';
 
 SecurityMiddleware::handle();
 
@@ -160,6 +166,9 @@ $router->get('/', [AuthController::class, 'showLogin']);
 
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
+$router->get('/admin/passwordless', [AuthController::class, 'showAdminPasswordless']);
+$router->post('/admin/passwordless/request', [AuthController::class, 'requestAdminPasswordless']);
+$router->post('/admin/passwordless/verify', [AuthController::class, 'verifyAdminPasswordless']);
 
 $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
@@ -185,6 +194,11 @@ $router->post('/logout', [AuthController::class, 'logout']);
 $router->get('/dashboard', [DashboardController::class, 'index']);
 $router->post('/dashboard/profile', [DashboardController::class, 'updateProfile']);
 $router->post('/dashboard/password', [DashboardController::class, 'updatePassword']);
+$router->post('/dashboard/telegram/request-link', [DashboardController::class, 'requestTelegramLink']);
+$router->post('/dashboard/telegram/preferences', [DashboardController::class, 'saveTelegramPreferences']);
+$router->post('/dashboard/telegram/unlink', [DashboardController::class, 'unlinkTelegram']);
+
+$router->post('/webhook/telegram', [TelegramController::class, 'webhook']);
 
 $router->get('/projects', [ProjectController::class, 'index']);
 $router->post('/projects', [ProjectController::class, 'create']);
@@ -200,11 +214,20 @@ $router->post('/check-card', [CardController::class, 'check']);
 $router->get('/cards/history', [CardController::class, 'history']);
 
 $router->get('/privacy', [PrivacyController::class, 'index']);
+$router->post('/privacy/cookies-consent', [PrivacyController::class, 'saveCookieConsent']);
 $router->post('/privacy/delete-history', [PrivacyController::class, 'deleteHistory']);
 $router->post('/privacy/delete-projects', [PrivacyController::class, 'deleteProjects']);
 $router->post('/privacy/delete-account', [PrivacyController::class, 'deleteAccount']);
 
 $router->get('/admin', [AdminController::class, 'dashboard']);
+$router->get('/admin/users', [AdminController::class, 'usersManagement']);
+$router->post('/admin/users/role', [AdminController::class, 'updateUserRole']);
+$router->post('/admin/users/role/approve', [AdminController::class, 'approveUserRoleChange']);
+$router->post('/admin/users/role/reject', [AdminController::class, 'rejectUserRoleChange']);
+$router->get('/admin/elevate', [AdminController::class, 'showElevation']);
+$router->post('/admin/elevate/send-code', [AdminController::class, 'sendElevationCode']);
+$router->post('/admin/elevate/verify', [AdminController::class, 'verifyElevationCode']);
+$router->post('/admin/send-telegram-notice', [AdminController::class, 'sendTelegramNotice']);
 $router->post('/admin/import-cards', [AdminController::class, 'importCards']);
 
 $router->dispatch($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']);

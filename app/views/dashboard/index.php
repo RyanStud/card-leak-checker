@@ -141,6 +141,59 @@
     </form>
     </div>
 
+    <h2>Integracao Telegram</h2>
+    <p>Status do vinculo: <strong><?= !empty($telegramAccount['telegram_user_id']) && !empty($telegramAccount['is_active']) ? 'Vinculado' : 'Nao vinculado' ?></strong></p>
+    <?php if (!empty($telegramAccount['telegram_user_id']) && !empty($telegramAccount['is_active'])): ?>
+        <p>Telegram ID: <?= e($telegramAccount['telegram_user_id']) ?></p>
+        <p>Username: <?= e($telegramAccount['telegram_username'] ?? '-') ?></p>
+        <p>Nome no Telegram: <?= e(trim(((string)($telegramAccount['telegram_first_name'] ?? '')) . ' ' . ((string)($telegramAccount['telegram_last_name'] ?? '')))) ?: '-' ?></p>
+        <p>Vinculado em: <?= e($telegramAccount['linked_at'] ?? '-') ?></p>
+    <?php endif; ?>
+
+    <?php if ($telegramPendingLinkUrl !== ''): ?>
+        <p>Link de vinculacao (15 min): <a href="<?= e($telegramPendingLinkUrl) ?>" target="_blank" rel="noopener noreferrer">Abrir bot e vincular</a></p>
+        <p><small><?= e($telegramPendingLinkUrl) ?></small></p>
+    <?php endif; ?>
+
+    <?php if (($telegramBotUsername ?? '') !== ''): ?>
+        <form method="POST" action="<?= e(base_path('/dashboard/telegram/request-link')) ?>" style="margin-bottom: 12px;">
+            <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+            <button type="submit">Gerar novo link de vinculacao no Telegram</button>
+        </form>
+    <?php else: ?>
+        <p><small>Defina TELEGRAM_BOT_USERNAME no .env para gerar links automáticos de vinculação.</small></p>
+    <?php endif; ?>
+
+    <form method="POST" action="<?= e(base_path('/dashboard/telegram/preferences')) ?>" style="margin-bottom: 12px;">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+
+        <div>
+            <label>Username Telegram</label><br>
+            <input type="text" name="telegram_username" maxlength="32" placeholder="ex: seu_usuario" value="<?= e($telegramAccount['telegram_username'] ?? '') ?>">
+        </div>
+
+        <div>
+            <label>Telefone Telegram</label><br>
+            <input type="text" name="telegram_phone" maxlength="20" placeholder="Ex: +5511999999999" value="<?= e($telegramAccount['telegram_phone'] ?? '') ?>">
+        </div>
+
+        <div>
+            <label>
+                <input type="checkbox" name="notifications_enabled" value="1" <?= !isset($telegramAccount['notifications_enabled']) || (int)$telegramAccount['notifications_enabled'] === 1 ? 'checked' : '' ?>>
+                Receber notificacoes/alertas no Telegram
+            </label>
+        </div>
+
+        <button type="submit">Salvar preferencias Telegram</button>
+    </form>
+
+    <?php if (!empty($telegramAccount['telegram_user_id']) && !empty($telegramAccount['is_active'])): ?>
+        <form method="POST" action="<?= e(base_path('/dashboard/telegram/unlink')) ?>">
+            <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+            <button type="submit">Desvincular Telegram</button>
+        </form>
+    <?php endif; ?>
+
     <?php $dashboardScriptVersion = (string) (@filemtime(__DIR__ . '/../../../public/js/dashboard-profile.js') ?: time()); ?>
     <script src="<?= e(base_path('/public/js/dashboard-profile.js?v=' . $dashboardScriptVersion)) ?>"></script>
     <?php require __DIR__ . '/../partials/footer.php'; ?>

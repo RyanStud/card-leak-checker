@@ -209,7 +209,13 @@ card-leak-checker/
 - Cadastro de usuário
 - Login / Logout
 - Confirmação de senha forte
-- Autenticação multifator (2FA)
+- Autenticação multifator (2FA) por TOTP no login (Authenticator)
+
+### Elevação de sessão administrativa
+
+- Usuários com role admin precisam elevar a sessão antes de acessar funcionalidades administrativas.
+- A elevação usa código temporário enviado pelo Telegram (produção) ou modo local em log.
+- Tempo de elevação controlado por `ADMIN_ELEVATION_TTL` (padrão 900 segundos).
 
 ### Recuperação de senha
 
@@ -262,6 +268,11 @@ Métricas exibidas no painel de segurança:
 - Consultas realizadas
 - Tentativas de login
 - Eventos suspeitos
+
+Regras de acesso:
+
+- Role `admin` obrigatória.
+- Sessão administrativa elevada obrigatória.
 
 ---
 
@@ -324,6 +335,8 @@ Tipos de eventos atualmente detectados:
 - `admin_access_denied_repeated`
 - `password_reset_abuse`
 - `suspicious_method_abuse`
+- `admin_session_not_elevated`
+- `admin_elevation_code_invalid`
 
 Evento auxiliar para análise de abuso de reset:
 
@@ -415,7 +428,7 @@ Sessões configuradas com:
 | Middleware | Responsabilidade |
 |---|---|
 | `AuthMiddleware` | Garante que páginas privadas exigem login |
-| `AdminMiddleware` | Garante que o painel admin exige role adequada |
+| `AdminMiddleware` | Garante role admin e sessão elevada para rotas administrativas |
 
 ---
 
@@ -482,6 +495,8 @@ Eventos registrados:
 - Defina também:
 	- `MASTER_KEY_FILE` com caminho absoluto do arquivo da master key
 	- `SECRETS_FILE=config/secrets.enc`
+	- `TELEGRAM_MODE=log` para desenvolvimento local (sem webhook real)
+	- `ADMIN_ELEVATION_TTL` para tempo da elevação admin em segundos
 
 Exemplo de caminho da master key no Windows:
 
@@ -492,10 +507,12 @@ MASTER_KEY_FILE=C:\xampp\htdocs\cardleak.masterkey
 ### 3. Criar arquivo `config/secrets.json` com base no `config/secrets.json.example`
 
 - Copie `config/secrets.json.example` para `config/secrets.json`.
+- Alternativa rápida: copie `config/secrets.simple.example.json` para `config/secrets.json` (sem chaves `_comment_`).
 - Preencha os campos reais de segredo:
 	- `DB_USER`: usuário do banco
 	- `DB_PASS`: senha do banco
-	- `APP_KEY`: chave interna da aplicação
+	- `APP_KEY_TELEGRAM`: token do bot do Telegram
+	- `TELEGRAM_WEBHOOK_SECRET`: token de segurança do webhook Telegram
 	- `CSRF_SECRET`: segredo para proteção CSRF
 	- `MAILTRAP_API_TOKEN`: token do Mailtrap API
 	- `MAIL_USER`: usuário SMTP
@@ -528,7 +545,32 @@ Saída esperada:
 - Remova `config/secrets.json` do ambiente final (produção).
 - Inicie Apache/PHP e acesse o `APP_URL` configurado.
 
-### 5.1 Importar base de cartões vazados (vault)
+### 5.1 Telegram webhook e modo local
+
+- Defina no `.env`:
+	- `APP_URL` com seu domínio real (ex.: `https://clonacartao.online`)
+	- `TELEGRAM_BOT_USERNAME` com o username público do bot (sem `@`)
+	- `TELEGRAM_MODE=api` para produção
+- Gere/atualize o `config/secrets.enc` com `APP_KEY_TELEGRAM` e `TELEGRAM_WEBHOOK_SECRET` preenchidos.
+- Configure o webhook no Telegram:
+
+```bash
+php scripts/configure-telegram-webhook.php
+```
+
+- Endpoint recebido pelo Telegram: `POST /webhook/telegram`.
+- Segurança: o endpoint valida o header `X-Telegram-Bot-Api-Secret-Token`.
+
+Desenvolvimento local (sem webhook público):
+
+- Use `TELEGRAM_MODE=log` no `.env`.
+- Nesse modo, o envio de código de elevação admin é registrado em `storage/logs/app.log`.
+- Para elevar sessão admin localmente:
+	- acesse `/admin/elevate`
+	- clique em gerar código
+	- copie o código do log e valide no formulário
+
+### 5.2 Importar base de cartões vazados (vault)
 
 Com o banco sincronizado via `database/sync_schema.sql`, execute a importação do CSV para popular `leaked_cards_vault`:
 
