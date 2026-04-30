@@ -156,6 +156,18 @@ CREATE TABLE IF NOT EXISTS password_resets (
         ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS password_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_history_user_changed (user_id, changed_at),
+    CONSTRAINT fk_password_history_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS blocked_ips (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ip_address VARCHAR(45) NOT NULL UNIQUE,
@@ -231,6 +243,9 @@ ALTER TABLE leaked_cards_vault
 ALTER TABLE password_resets
     ADD INDEX IF NOT EXISTS idx_password_resets_token_valid (token_hash, used_at, expires_at),
     ADD INDEX IF NOT EXISTS idx_password_resets_user_used (user_id, used_at);
+
+ALTER TABLE password_history
+    ADD INDEX IF NOT EXISTS idx_password_history_user_changed (user_id, changed_at);
 
 ALTER TABLE email_verifications
     ADD INDEX IF NOT EXISTS idx_email_verifications_token_valid (token_hash, used_at, expires_at);

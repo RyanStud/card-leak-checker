@@ -140,9 +140,22 @@ CREATE TABLE IF NOT EXISTS password_resets (
     INDEX idx_password_resets_user_used (user_id, used_at),
     CONSTRAINT fk_password_resets_user 
         FOREIGN KEY (user_id) 
-        REFERENCES users(id) 
+        REFERENCES users(id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS password_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_history_user_changed (user_id, changed_at),
+    CONSTRAINT fk_password_history_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS blocked_ips (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ip_address VARCHAR(45) NOT NULL UNIQUE,

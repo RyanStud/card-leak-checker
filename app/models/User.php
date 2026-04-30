@@ -56,11 +56,80 @@ class User
 
     public function updatePassword(int $userId, string $passwordHash): bool
     {
-        $stmt = $this->pdo->prepare(
-            'UPDATE users SET password_hash = ? WHERE id = ?'
-        );
+        $currentUser = $this->findById($userId);
+        $currentHash = $currentUser['password_hash'] ?? null;
 
-        return $stmt->execute([$passwordHash, $userId]);
+        try {
+            $this->pdo->beginTransaction();
+
+            if (is_string($currentHash) && $currentHash !== '') {
+                $historyStmt = $this->pdo->prepare(
+                    'INSERT INTO password_history (user_id, password_hash) VALUES (?, ?)'
+                );
+                $historyStmt->execute([$userId, $currentHash]);
+            }
+
+            $stmt = $this->pdo->prepare(
+                'UPDATE users SET password_hash = ? WHERE id = ?'
+            );
+            $updated = $stmt->execute([$passwordHash, $userId]);
+
+            $this->prunePasswordHistory($userId);
+            $this->pdo->commit();
+
+            return $updated;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
+    public function hasRecentlyUsedPassword(int $userId, string $plainPassword, int $limit = 5): bool
+    {
+        $user = $this->findById($userId);
+        if ($user && password_verify($plainPassword, (string)$user['password_hash'])) {
+            return true;
+        }
+
+        $limit = max(1, min($limit, 20));
+        $stmt = $this->pdo->prepare(
+            'SELECT password_hash
+             FROM password_history
+             WHERE user_id = ?
+             ORDER BY changed_at DESC, id DESC
+             LIMIT ' . (int)$limit
+        );
+        $stmt->execute([$userId]);
+
+        foreach ($stmt->fetchAll() as $historyRow) {
+            if (password_verify($plainPassword, (string)$historyRow['password_hash'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function prunePasswordHistory(int $userId, int $limit = 5): void
+    {
+        $limit = max(1, min($limit, 20));
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM password_history
+             WHERE user_id = ?
+               AND id NOT IN (
+                   SELECT id FROM (
+                       SELECT id
+                       FROM password_history
+                       WHERE user_id = ?
+                       ORDER BY changed_at DESC, id DESC
+                       LIMIT ' . (int)$limit . '
+                   ) recent_passwords
+               )'
+        );
+        $stmt->execute([$userId, $userId]);
     }
 
     public function findByCpf(string $cpfDigits): ?array
