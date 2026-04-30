@@ -656,6 +656,11 @@ class AuthController extends Controller
         }
 
         $userModel = new User();
+        if ($userModel->hasRecentlyUsedPassword((int)$reset['user_id'], $password)) {
+            set_flash('error', 'A nova senha nao pode ser igual a senha atual nem uma das ultimas senhas usadas.');
+            $this->redirect(base_path('/reset-password') . '?token=' . urlencode($token));
+        }
+
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         $userModel->updatePassword((int)$reset['user_id'], $passwordHash);
 

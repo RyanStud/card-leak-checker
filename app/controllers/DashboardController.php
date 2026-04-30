@@ -207,8 +207,8 @@ class DashboardController extends Controller
             $this->redirect(base_path('/dashboard'));
         }
 
-        if (password_verify($newPassword, (string)$user['password_hash'])) {
-            set_flash('error', 'A nova senha nao pode ser igual a senha atual.');
+        if ($userModel->hasRecentlyUsedPassword($userId, $newPassword)) {
+            set_flash('error', 'A nova senha nao pode ser igual a senha atual nem uma das ultimas senhas usadas.');
             $this->redirect(base_path('/dashboard'));
         }
 
