@@ -104,9 +104,6 @@ ALTER TABLE password_resets
     ADD INDEX IF NOT EXISTS idx_password_resets_token_valid (token_hash, used_at, expires_at),
     ADD INDEX IF NOT EXISTS idx_password_resets_user_used (user_id, used_at);
 
-ALTER TABLE password_history
-    ADD INDEX IF NOT EXISTS idx_password_history_user_created (user_id, created_at);
-
 ALTER TABLE email_verifications
     ADD INDEX IF NOT EXISTS idx_email_verifications_token_valid (token_hash, used_at, expires_at);
 
