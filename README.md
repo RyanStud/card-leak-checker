@@ -145,6 +145,7 @@ card-leak-checker/
 │   │   ├── mailer.php
 │   │   ├── otp.php
 │   │   ├── security.php
+│   │   ├── security_questions.php
 │   │   ├── security_view.php
 │   │   ├── url.php
 │   │   └── view.php
@@ -166,14 +167,17 @@ card-leak-checker/
 │   │   ├── Project.php
 │   │   ├── SecurityMonitor.php
 │   │   ├── SuspiciousEvent.php
+│   │   ├── UserSecurityAnswer.php
 │   │   └── User.php
 │   │
 │   └── views/
 │       ├── admin/
 │       ├── auth/
+│       │   └── admin-passwordless-questions.php
 │       ├── cards/
 │       ├── dashboard/
 │       ├── partials/
+│       │   └── cookie-consent.php
 │       ├── privacy/
 │       └── projects/
 │
@@ -194,6 +198,10 @@ card-leak-checker/
 │   │   ├── icons/
 │   │   └── images/
 │   └── js/
+│       ├── banner-toggle.js
+│       ├── cookie-consent.js
+│       ├── admin-passwordless.js
+│       ├── privacy-security-questions.js
 │       └── reject-modal.js
 │
 ├── storage/
@@ -210,12 +218,20 @@ card-leak-checker/
 - Login / Logout
 - Confirmação de senha forte
 - Autenticação multifator (2FA) por TOTP no login (Authenticator)
+- Login administrativo com Telegram como fluxo principal e perguntas de segurança como fallback após 1 minuto
+
+### Perguntas de segurança
+
+- O usuário cadastra 5 respostas dentre 10 perguntas pré-definidas na aba de privacidade.
+- No login administrativo, o sistema sorteia 3 perguntas aleatórias entre as respostas já cadastradas.
+- As respostas são armazenadas com hash, sem texto puro.
 
 ### Elevação de sessão administrativa
 
 - Usuários com role admin precisam elevar a sessão antes de acessar funcionalidades administrativas.
 - A elevação usa código temporário enviado pelo Telegram (produção) ou modo local em log.
 - Tempo de elevação controlado por `ADMIN_ELEVATION_TTL` (padrão 900 segundos).
+- Se o Telegram não for respondido em tempo hábil, o sistema libera o fallback por perguntas de segurança após 60 segundos, mantendo o Telegram como método principal.
 
 ### Recuperação de senha
 
@@ -273,6 +289,7 @@ Regras de acesso:
 
 - Role `admin` obrigatória.
 - Sessão administrativa elevada obrigatória.
+ - Em caso de indisponibilidade do Telegram, o acesso pode seguir pelo fluxo alternativo de perguntas de segurança.
 
 ---
 
@@ -314,6 +331,11 @@ hash_equals($storedToken, $submittedToken);
 ### Rate Limiting
 
 Tentativas de login monitoradas na tabela `login_attempts`. Bloqueia ataques de força bruta.
+
+### Proteção adicional no login admin
+
+- Tentativas inválidas de código do Telegram e de perguntas de segurança são registradas como eventos suspeitos.
+- O fallback para perguntas de segurança só é habilitado após 60 segundos da solicitação do código via Telegram.
 
 ### Monitoramento de eventos suspeitos
 
@@ -423,6 +445,12 @@ Sessões configuradas com:
 - `SameSite`
 - `Secure` (quando HTTPS)
 
+### Banner de consentimento de cookies
+
+- O consentimento de cookies é exibido desde o primeiro acesso, em um banner fixo separado do rodapé do site.
+- O banner permanece visível até o usuário escolher uma das opções de consentimento.
+- A escolha é salva no cookie `lgpd_cookie_consent`.
+
 ### Controle de acesso
 
 | Middleware | Responsabilidade |
@@ -443,6 +471,16 @@ O usuário pode, a qualquer momento:
 - Excluir seu histórico de consultas
 - Excluir seus projetos
 - Excluir sua conta
+- Registrar e alterar suas perguntas de segurança na aba de privacidade
+
+### Consentimento de cookies
+
+No primeiro acesso, o sistema exibe o banner de consentimento de cookies com opções para:
+
+- Aceitar somente essenciais
+- Aceitar todos
+
+Esse banner fica separado do rodapé do site e aparece enquanto o usuário não escolher uma opção.
 
 ### Endpoints de exclusão
 
@@ -451,6 +489,15 @@ O usuário pode, a qualquer momento:
 | Excluir histórico | `POST /privacy/delete-history` |
 | Excluir projetos | `POST /privacy/delete-projects` |
 | Excluir conta | `POST /privacy/delete-account` |
+| Salvar perguntas de segurança | `POST /privacy/security-questions` |
+
+### Acesso admin alternativo
+
+| Ação | Endpoint |
+|---|---|
+| Solicitar código Telegram | `POST /admin/passwordless/request` |
+| Ver perguntas de segurança | `GET /admin/passwordless/questions` |
+| Validar perguntas de segurança | `POST /admin/passwordless/questions/verify` |
 
 ---
 
