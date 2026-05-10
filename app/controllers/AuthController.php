@@ -210,8 +210,35 @@ class AuthController extends Controller
     public function showAdminPasswordless(): void
     {
         $captcha = captcha_get_or_create('admin_passwordless');
+        $canUseQuestions = false;
+        $codeSentAt = null;
+
+        $userId = (int)($_SESSION['admin_passwordless_user_id'] ?? 0);
+        if ($userId > 0) {
+            $securityModel = new UserSecurityAnswer();
+            $answered = $securityModel->countUserAnswers($userId);
+            if ($answered >= 5) {
+                $canUseQuestions = true;
+            }
+
+            $codeSentAt = (int)($_SESSION['admin_passwordless_code_sent_at'] ?? 0);
+            // if not in session, try to get from telegram_accounts table
+            if ($codeSentAt <= 0) {
+                $tm = new TelegramAccount();
+                $ta = $tm->findByUserId($userId);
+                if (!empty($ta['login_code_sent_at'])) {
+                    $ts = strtotime($ta['login_code_sent_at']);
+                    if ($ts !== false) {
+                        $codeSentAt = (int)$ts;
+                    }
+                }
+            }
+        }
+
         $this->view('auth/admin-passwordless', [
             'captchaQuestion' => $captcha['question'] ?? '',
+            'canUseQuestions' => $canUseQuestions,
+            'codeSentAt' => $codeSentAt,
         ]);
     }
 
@@ -296,6 +323,8 @@ class AuthController extends Controller
         $_SESSION['admin_passwordless_user_id'] = $userId;
         $_SESSION['pre_2fa_user_id'] = $userId;
         $_SESSION['pre_2fa_email'] = $user['email'];
+        // mark when the code was sent so client can enable fallback after 60s
+        $_SESSION['admin_passwordless_code_sent_at'] = time();
         set_flash('success', 'Código enviado no Telegram.');
         $this->redirect(base_path('/admin/passwordless'));
     }
@@ -357,6 +386,106 @@ class AuthController extends Controller
         $_SESSION['pre_2fa_user_id'] = $userId;
         $_SESSION['pre_2fa_email'] = $user['email'];
         $_SESSION['admin_passwordless_user_id'] = $userId;
+
+        if ((int)$user['two_factor_enabled'] !== 1 || empty($user['two_factor_secret'])) {
+            $this->redirect(base_path('/2fa/setup'));
+        }
+
+        $this->redirect(base_path('/2fa/verify'));
+    }
+
+    public function showAdminPasswordlessQuestions(): void
+    {
+        $userId = (int)($_SESSION['admin_passwordless_user_id'] ?? 0);
+        if ($userId <= 0) {
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $securityModel = new UserSecurityAnswer();
+        $indices = $securityModel->getUserQuestionIndices($userId);
+        if (count($indices) < 5) {
+            set_flash('error', 'Você não tem perguntas de segurança suficientes cadastradas.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        // ensure at least 60s passed since code was sent
+        $sentAt = (int)($_SESSION['admin_passwordless_code_sent_at'] ?? 0);
+        if ($sentAt <= 0) {
+            $tm = new TelegramAccount();
+            $ta = $tm->findByUserId($userId);
+            if (!empty($ta['login_code_sent_at'])) {
+                $ts = strtotime($ta['login_code_sent_at']);
+                if ($ts !== false) {
+                    $sentAt = (int)$ts;
+                }
+            }
+        }
+
+        if ($sentAt > 0 && (time() - $sentAt) < 60) {
+            set_flash('error', 'Aguarde 1 minuto para usar as perguntas de segurança como fallback.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        // pick 3 random
+        shuffle($indices);
+        $pick = array_slice($indices, 0, 3);
+
+        require_once __DIR__ . '/../helpers/security_questions.php';
+        $questions = security_questions_list();
+
+        $selected = [];
+        foreach ($pick as $i) {
+            $selected[$i] = $questions[$i] ?? 'Pergunta não encontrada';
+        }
+
+        $this->view('auth/admin-passwordless-questions', [
+            'questions' => $selected,
+        ]);
+    }
+
+    public function verifyAdminPasswordlessQuestions(): void
+    {
+        verify_csrf();
+        $userId = (int)($_SESSION['admin_passwordless_user_id'] ?? 0);
+        if ($userId <= 0) {
+            set_flash('error', 'Sessão inválida para verificação.');
+            $this->redirect(base_path('/admin/passwordless'));
+        }
+
+        $provided = [];
+        foreach ($_POST as $k => $v) {
+            if (str_starts_with($k, 'q_')) {
+                $idx = (int)substr($k, 2);
+                $provided[$idx] = trim((string)$v);
+            }
+        }
+
+        if (count($provided) !== 3) {
+            set_flash('error', 'Forneça as 3 respostas solicitadas.');
+            $this->redirect(base_path('/admin/passwordless/questions'));
+        }
+
+        $securityModel = new UserSecurityAnswer();
+        $ok = $securityModel->verifyAnswers($userId, $provided);
+
+        if (!$ok) {
+            $suspiciousModel = new SuspiciousEvent();
+            $suspiciousModel->create(
+                $userId,
+                null,
+                client_ip(),
+                'admin_security_questions_failed',
+                'Falha na verificação por perguntas de segurança para acesso admin'
+            );
+
+            set_flash('error', 'Respostas incorretas.');
+            $this->redirect(base_path('/admin/passwordless/questions'));
+        }
+
+        $_SESSION['pre_2fa_user_id'] = $userId;
+        $userModel = new User();
+        $user = $userModel->findById($userId);
+        $_SESSION['pre_2fa_email'] = $user['email'] ?? '';
 
         if ((int)$user['two_factor_enabled'] !== 1 || empty($user['two_factor_secret'])) {
             $this->redirect(base_path('/2fa/setup'));

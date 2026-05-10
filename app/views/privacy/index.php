@@ -81,6 +81,48 @@
 
     <hr>
 
+    <h2>Perguntas de segurança</h2>
+    <?php
+        require_once __DIR__ . '/../../helpers/security_questions.php';
+        $questions = security_questions_list();
+        $saved = $securityIndices ?? [];
+    ?>
+
+    <p>Responda 5 das 10 perguntas abaixo. As respostas serão usadas como fallback caso seu acesso via Telegram falhe.</p>
+
+    <?php if (!empty($securityCount) && (int)$securityCount >= 5): ?>
+        <p><strong>Você já cadastrou <?= (int)$securityCount ?> respostas.</strong></p>
+    <?php endif; ?>
+
+    <button id="edit-security-questions" type="button">Alterar perguntas</button>
+
+    <form id="security-questions-form" style="display:none;" method="POST" action="<?= e(base_path('/privacy/security-questions')) ?>">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+
+        <?php foreach ($questions as $idx => $q): ?>
+            <?php $isSaved = in_array($idx, $saved, true); ?>
+            <div class="security-question" data-index="<?= e($idx) ?>" style="margin-bottom:12px;">
+                <label><strong><?= e($idx) ?>. <?= e($q) ?></strong></label>
+                <?php if ($isSaved): ?>
+                    <span class="saved-indicator" aria-hidden="true">✔</span>
+                <?php else: ?>
+                    <span class="saved-indicator saved-empty" aria-hidden="true">○</span>
+                <?php endif; ?>
+                <br>
+                <input class="security-q-input" data-index="<?= e($idx) ?>" type="text" name="q_<?= e($idx) ?>" maxlength="255" placeholder="Resposta (preencha 5)" disabled />
+            </div>
+        <?php endforeach; ?>
+
+        <div style="margin-top:12px;">
+            <button id="save-security-questions" type="submit" disabled>Salvar respostas</button>
+            <span id="security-status" style="margin-left:12px;">Preenchidas: <strong id="filled-count">0</strong>/5</span>
+        </div>
+    </form>
+
+    <script src="<?= e(base_path('/public/js/privacy-security-questions.js')) ?>" defer></script>
+
+    <hr>
+
     <h2>Exclusão parcial de dados</h2>
 
     <h3>1. Apagar histórico de verificações</h3>

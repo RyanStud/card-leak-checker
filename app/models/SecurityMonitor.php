@@ -15,14 +15,32 @@ class SecurityMonitor
         string $method,
         ?string $userAgent,
         ?string $country,
-        ?int $responseCode = null
-    ): bool {
+        ?int $userId = null,
+        ?int $responseCode = null,
+        string $actionType = 'other'
+    ): ?int {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO request_logs (ip_address, request_uri, request_method, user_agent, country, response_code)
-             VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO request_logs (user_id, ip_address, request_uri, request_method, action_type, user_agent, country, response_code)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
 
-        return $stmt->execute([$ip, $uri, $method, $userAgent, $country, $responseCode]);
+        $saved = $stmt->execute([$userId, $ip, $uri, $method, $actionType, $userAgent, $country, $responseCode]);
+        if (!$saved) {
+            return null;
+        }
+
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    public function finalizeRequestLog(int $requestLogId, ?int $userId, int $responseCode): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE request_logs
+             SET user_id = COALESCE(user_id, ?), response_code = ?
+             WHERE id = ?'
+        );
+
+        return $stmt->execute([$userId, $responseCode, $requestLogId]);
     }
 
     public function isIpBlocked(string $ip): bool

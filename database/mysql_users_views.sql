@@ -4,14 +4,14 @@
 USE u870812724_card_leak_chec;
 
 -- Usuarios de aplicacao (exemplo)
--- CREATE USER IF NOT EXISTS 'clc_app_rw'@'localhost' IDENTIFIED BY 'ALTERE_AQUI_SENHA_FORTE';
--- CREATE USER IF NOT EXISTS 'clc_readonly'@'localhost' IDENTIFIED BY 'ALTERE_AQUI_SENHA_FORTE';
+-- CREATE USER IF NOT EXISTS 'UserAPP'@'localhost' IDENTIFIED BY 'ALTERE_AQUI_SENHA_FORTE';
+-- CREATE USER IF NOT EXISTS 'UserReadOnly'@'localhost' IDENTIFIED BY 'ALTERE_AQUI_SENHA_FORTE';
 
 -- Permissoes sugeridas para aplicacao
--- GRANT SELECT, INSERT, UPDATE, DELETE ON u870812724_card_leak_chec.* TO 'clc_app_rw'@'localhost';
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON u870812724_card_leak_chec.* TO 'UserAPP'@'localhost';
 
 -- Permissoes sugeridas para leitura analitica
--- GRANT SELECT ON u870812724_card_leak_chec.* TO 'clc_readonly'@'localhost';
+-- GRANT SELECT ON u870812724_card_leak_chec.* TO 'UserReadOnly'@'localhost';
 
 -- Views de apoio (somente leitura)
 CREATE OR REPLACE VIEW vw_security_recent_events AS

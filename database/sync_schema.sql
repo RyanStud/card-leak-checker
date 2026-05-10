@@ -198,15 +198,22 @@ CREATE TABLE IF NOT EXISTS blocked_ips (
 
 CREATE TABLE IF NOT EXISTS request_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
     ip_address VARCHAR(45) NOT NULL,
     request_uri VARCHAR(255) NOT NULL,
     request_method VARCHAR(10) NOT NULL,
+    action_type VARCHAR(20) NOT NULL DEFAULT 'other',
     user_agent TEXT NULL,
     country VARCHAR(80) NULL,
     response_code INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_request_logs_user_created (user_id, created_at),
     INDEX idx_request_logs_ip_created (ip_address, created_at),
-    INDEX idx_request_logs_created (created_at)
+    INDEX idx_request_logs_created (created_at),
+    CONSTRAINT fk_request_logs_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS admin_role_change_requests (
@@ -247,6 +254,17 @@ CREATE TABLE IF NOT EXISTS leaked_cards_vault (
     INDEX idx_card_lookup_hash (card_lookup_hash),
     INDEX idx_source_batch_created (source_batch, created_at)
 );
+
+CREATE TABLE IF NOT EXISTS user_security_answers (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    question_index TINYINT NOT NULL,
+    answer_hash VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_question (user_id, question_index),
+    CONSTRAINT fk_user_security_answers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 
 -- Ajustes de estrutura para bancos antigos
 ALTER TABLE projects
@@ -303,6 +321,9 @@ ALTER TABLE suspicious_events
     ADD INDEX IF NOT EXISTS idx_suspicious_events_event_created (event_type, created_at);
 
 ALTER TABLE request_logs
+    ADD COLUMN IF NOT EXISTS user_id INT NULL AFTER id,
+    ADD COLUMN IF NOT EXISTS action_type VARCHAR(20) NOT NULL DEFAULT 'other' AFTER request_method,
+    ADD INDEX IF NOT EXISTS idx_request_logs_user_created (user_id, created_at),
     ADD INDEX IF NOT EXISTS idx_request_logs_ip_created (ip_address, created_at),
     ADD INDEX IF NOT EXISTS idx_request_logs_created (created_at);
 

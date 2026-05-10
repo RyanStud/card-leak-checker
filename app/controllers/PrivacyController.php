@@ -36,11 +36,17 @@ class PrivacyController extends Controller
         $profile = $privacyModel->getUserProfileSummary($userId);
         $historyCount = $privacyModel->countUserHistory($userId);
         $projectsCount = $privacyModel->countOwnedProjects($userId);
+        $securityCount = 0;
+        $securityModel = new UserSecurityAnswer();
+        $securityCount = $securityModel->countUserAnswers($userId);
+        $securityIndices = $securityModel->getUserQuestionIndices($userId);
 
         $this->view('privacy/index', [
             'profile' => $profile,
             'historyCount' => $historyCount,
             'projectsCount' => $projectsCount,
+            'securityCount' => $securityCount,
+            'securityIndices' => $securityIndices,
         ]);
     }
 
@@ -127,5 +133,44 @@ class PrivacyController extends Controller
         set_flash('success', 'Conta excluída com sucesso.');
 
         $this->redirect(base_path('/login'));
+    }
+
+    public function saveSecurityQuestions(): void
+    {
+        AuthMiddleware::handle();
+        verify_csrf();
+
+        $userId = (int)$_SESSION['user_id'];
+
+        require_once __DIR__ . '/../helpers/security_questions.php';
+
+        $questions = security_questions_list();
+
+        $answers = [];
+        foreach ($questions as $index => $_) {
+            $field = 'q_' . (string)$index;
+            if (isset($_POST[$field]) && trim((string)$_POST[$field]) !== '') {
+                $answers[$index] = trim((string)$_POST[$field]);
+            }
+        }
+
+        if (count($answers) !== 5) {
+            set_flash('error', 'Responda exatamente 5 perguntas.');
+            $this->redirect(base_path('/privacy'));
+        }
+
+        $model = new UserSecurityAnswer();
+        $saved = $model->saveAnswers($userId, $answers);
+
+        if (!$saved) {
+            set_flash('error', 'Erro ao salvar suas respostas. Tente novamente.');
+            $this->redirect(base_path('/privacy'));
+        }
+
+        $audit = new AuditLog();
+        $audit->create($userId, null, 'security_questions_saved', json_encode(array_keys($answers), JSON_UNESCAPED_UNICODE));
+
+        set_flash('success', 'Respostas de segurança salvas com sucesso.');
+        $this->redirect(base_path('/privacy'));
     }
 }

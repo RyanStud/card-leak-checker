@@ -11,13 +11,36 @@ class SecurityMiddleware
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '-';
 
         $monitor = new SecurityMonitor();
+        $actionType = self::resolveActionType($method, $uri);
+        $requestLogId = $monitor->logRequest(
+            $ip,
+            $uri,
+            $method,
+            $userAgent,
+            $country,
+            isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+            null,
+            $actionType
+        );
+
+        register_shutdown_function(static function () use ($monitor, $requestLogId): void {
+            if ($requestLogId === null) {
+                return;
+            }
+
+            $responseCode = http_response_code();
+            if (!is_int($responseCode) || $responseCode < 100) {
+                $responseCode = 200;
+            }
+
+            $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+            $monitor->finalizeRequestLog($requestLogId, $userId, $responseCode);
+        });
 
         if ($monitor->isIpBlocked($ip)) {
             http_response_code(403);
             exit('Seu IP foi bloqueado temporariamente por segurança.');
         }
-
-        $monitor->logRequest($ip, $uri, $method, $userAgent, $country, null);
 
         $retentionDays = (int)env('SECURITY_LOG_RETENTION_DAYS', 90);
         $cleanupProbability = (int)env('SECURITY_LOG_CLEANUP_PROBABILITY', 2);
@@ -77,5 +100,47 @@ class SecurityMiddleware
                 );
             }
         }
+    }
+
+    private static function resolveActionType(string $method, string $uri): string
+    {
+        $normalizedMethod = strtoupper($method);
+
+        if ($normalizedMethod === 'GET') {
+            return 'read';
+        }
+
+        if ($normalizedMethod !== 'POST') {
+            return 'other';
+        }
+
+        $path = strtolower((string)(parse_url($uri, PHP_URL_PATH) ?? '/'));
+        $changeKeywords = [
+            'update',
+            'delete',
+            'remove',
+            'revoke',
+            'reject',
+            'approve',
+            'import',
+            'unlink',
+            'password',
+            'profile',
+            'role',
+            'save',
+            'setup',
+            'verify',
+            'logout',
+            'reset',
+            'elevate',
+        ];
+
+        foreach ($changeKeywords as $keyword) {
+            if (str_contains($path, $keyword)) {
+                return 'change';
+            }
+        }
+
+        return 'write';
     }
 }

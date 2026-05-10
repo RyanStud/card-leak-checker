@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <?php if (!empty($codeSentAt) && is_int($codeSentAt)): ?>
+        <meta name="admin-passwordless-sent-at" content="<?= e((int)$codeSentAt) ?>">
+    <?php endif; ?>
     <link rel="icon" type="image/png" href="<?= e(base_path('/public/assets/icons/favicon-32x32.png')) ?>">
     <link rel="stylesheet" href="<?= e(base_path('/public/assets/css/theme.css')) ?>">
     <title>Verificacao de acesso</title>
@@ -36,6 +39,17 @@
 
         <button type="submit">Enviar codigo</button>
     </form>
+
+    <?php $canUse = $canUseQuestions ?? false; $sentAt = $codeSentAt ?? 0; ?>
+    <?php if ($canUse): ?>
+        <div style="margin-top:14px;">
+            <form id="use-questions-form" method="GET" action="<?= e(base_path('/admin/passwordless/questions')) ?>">
+                <button id="use-questions-btn" type="submit" disabled>Usar perguntas de segurança (disponível após 60s)</button>
+            </form>
+            <small id="questions-timer-note" style="margin-left:12px; color:var(--muted);"><?php if ($sentAt>0) { echo 'Código enviado há: <span id="sent-age">calculando</span>'; } ?></small>
+        </div>
+        <script src="<?= e(base_path('/public/js/admin-passwordless.js')) ?>" defer></script>
+    <?php endif; ?>
 
     <h2>2. Validar codigo</h2>
     <form method="POST" action="<?= e(base_path('/admin/passwordless/verify')) ?>">

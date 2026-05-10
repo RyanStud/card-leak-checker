@@ -184,15 +184,22 @@ CREATE TABLE IF NOT EXISTS blocked_ips (
 
 CREATE TABLE IF NOT EXISTS request_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
     ip_address VARCHAR(45) NOT NULL,
     request_uri VARCHAR(255) NOT NULL,
     request_method VARCHAR(10) NOT NULL,
+    action_type VARCHAR(20) NOT NULL DEFAULT 'other',
     user_agent TEXT NULL,
     country VARCHAR(80) NULL,
     response_code INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_request_logs_user_created (user_id, created_at),
     INDEX idx_request_logs_ip_created (ip_address, created_at),
-    INDEX idx_request_logs_created (created_at)
+    INDEX idx_request_logs_created (created_at),
+    CONSTRAINT fk_request_logs_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS admin_role_change_requests (

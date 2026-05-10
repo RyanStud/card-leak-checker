@@ -130,6 +130,7 @@ require __DIR__ . '/app/helpers/telegram.php';
 require __DIR__ . '/app/helpers/security_view.php';
 require __DIR__ . '/app/helpers/captcha.php';
 require __DIR__ . '/app/helpers/cookies.php';
+require __DIR__ . '/app/helpers/security_questions.php';
 
 require __DIR__ . '/app/middleware/AuthMiddleware.php';
 require __DIR__ . '/app/middleware/AdminMiddleware.php';
@@ -149,6 +150,7 @@ require __DIR__ . '/app/models/AdminDashboard.php';
 require __DIR__ . '/app/models/SecurityMonitor.php';
 require __DIR__ . '/app/models/TelegramAccount.php';
 require __DIR__ . '/app/models/AdminRoleChangeRequest.php';
+require __DIR__ . '/app/models/UserSecurityAnswer.php';
 
 require __DIR__ . '/app/controllers/AuthController.php';
 require __DIR__ . '/app/controllers/DashboardController.php';
@@ -169,6 +171,8 @@ $router->post('/login', [AuthController::class, 'login']);
 $router->get('/admin/passwordless', [AuthController::class, 'showAdminPasswordless']);
 $router->post('/admin/passwordless/request', [AuthController::class, 'requestAdminPasswordless']);
 $router->post('/admin/passwordless/verify', [AuthController::class, 'verifyAdminPasswordless']);
+$router->get('/admin/passwordless/questions', [AuthController::class, 'showAdminPasswordlessQuestions']);
+$router->post('/admin/passwordless/questions/verify', [AuthController::class, 'verifyAdminPasswordlessQuestions']);
 
 $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
@@ -218,6 +222,7 @@ $router->post('/privacy/cookies-consent', [PrivacyController::class, 'saveCookie
 $router->post('/privacy/delete-history', [PrivacyController::class, 'deleteHistory']);
 $router->post('/privacy/delete-projects', [PrivacyController::class, 'deleteProjects']);
 $router->post('/privacy/delete-account', [PrivacyController::class, 'deleteAccount']);
+$router->post('/privacy/security-questions', [PrivacyController::class, 'saveSecurityQuestions']);
 
 $router->get('/admin', [AdminController::class, 'dashboard']);
 $router->get('/admin/users', [AdminController::class, 'usersManagement']);

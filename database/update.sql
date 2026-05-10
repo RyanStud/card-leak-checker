@@ -10,9 +10,11 @@ CREATE TABLE IF NOT EXISTS blocked_ips (
 
 CREATE TABLE IF NOT EXISTS request_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
     ip_address VARCHAR(45) NOT NULL,
     request_uri VARCHAR(255) NOT NULL,
     request_method VARCHAR(10) NOT NULL,
+    action_type VARCHAR(20) NOT NULL DEFAULT 'other',
     user_agent TEXT NULL,
     country VARCHAR(80) NULL,
     response_code INT NULL,
@@ -85,6 +87,9 @@ ALTER TABLE suspicious_events
     ADD INDEX IF NOT EXISTS idx_suspicious_events_event_created (event_type, created_at);
 
 ALTER TABLE request_logs
+    ADD COLUMN IF NOT EXISTS user_id INT NULL AFTER id,
+    ADD COLUMN IF NOT EXISTS action_type VARCHAR(20) NOT NULL DEFAULT 'other' AFTER request_method,
+    ADD INDEX IF NOT EXISTS idx_request_logs_user_created (user_id, created_at),
     ADD INDEX IF NOT EXISTS idx_request_logs_ip_created (ip_address, created_at),
     ADD INDEX IF NOT EXISTS idx_request_logs_created (created_at);
 
@@ -117,6 +122,17 @@ ALTER TABLE telegram_accounts
     ADD INDEX IF NOT EXISTS idx_telegram_accounts_login_code_expires (login_code_expires_at),
     ADD INDEX IF NOT EXISTS idx_telegram_accounts_is_active (is_active),
     ADD INDEX IF NOT EXISTS idx_telegram_accounts_expires (link_code_expires_at);
+
+-- Table to store user security question answers (predefined questions are in code)
+CREATE TABLE IF NOT EXISTS user_security_answers (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    question_index TINYINT NOT NULL,
+    answer_hash VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_question (user_id, question_index),
+    CONSTRAINT fk_user_security_answers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
 ALTER TABLE admin_role_change_requests
     ADD COLUMN IF NOT EXISTS requested_by_user_id INT NOT NULL,
