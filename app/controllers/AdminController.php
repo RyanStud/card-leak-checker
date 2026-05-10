@@ -439,6 +439,7 @@ class AdminController extends Controller
         $loginAttempts = $admin->getRecentLoginAttempts(30, $since);
         $topIps = $admin->getTopIps(10, $since);
         $suspiciousTypes = $admin->getSuspiciousEventTypes($since);
+        $criticalSessionEvents = $admin->getRecentCriticalSessionEvents(10, $since);
         $recentCardChecks = $admin->getRecentCardChecks(20, $since);
         $blockedIps = $admin->getBlockedIps(20, $since);
         $recentRequests = $admin->getRecentRequests(30, $since);
@@ -452,6 +453,7 @@ class AdminController extends Controller
             'loginAttempts' => $loginAttempts,
             'topIps' => $topIps,
             'suspiciousTypes' => $suspiciousTypes,
+            'criticalSessionEvents' => $criticalSessionEvents,
             'recentCardChecks' => $recentCardChecks,
             'blockedIps' => $blockedIps,
             'recentRequests' => $recentRequests,

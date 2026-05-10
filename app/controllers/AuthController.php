@@ -544,8 +544,6 @@ class AuthController extends Controller
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['two_factor_verified'] = true;
-        $_SESSION['session_ip'] = client_ip();
-        $_SESSION['session_ua_hash'] = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '-'));
         $_SESSION['admin_access_mode'] = !empty($_SESSION['admin_passwordless_user_id']) ? 'privileged' : ((($user['role'] ?? 'user') === 'admin') ? 'restricted' : 'none');
         $_SESSION['admin_elevated_until'] = 0;
 
@@ -572,6 +570,7 @@ class AuthController extends Controller
             unset($_SESSION['admin_passwordless_user_id']);
 
             session_regenerate_id(true);
+            bind_authenticated_session_context();
             set_flash('success', 'Acesso admin passwordless concluído com sucesso.');
             $this->redirect(base_path('/admin'));
         }
@@ -579,6 +578,7 @@ class AuthController extends Controller
         unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email'], $_SESSION['temp_2fa_secret']);
 
         session_regenerate_id(true);
+        bind_authenticated_session_context();
 
         $this->redirect(base_path('/admin'));
     }
@@ -627,8 +627,6 @@ class AuthController extends Controller
 
         $_SESSION['user_id'] = $userId;
         $_SESSION['two_factor_verified'] = true;
-        $_SESSION['session_ip'] = client_ip();
-        $_SESSION['session_ua_hash'] = hash('sha256', (string)($_SERVER['HTTP_USER_AGENT'] ?? '-'));
         $_SESSION['admin_access_mode'] = !empty($_SESSION['admin_passwordless_user_id']) ? 'privileged' : ((($user['role'] ?? 'user') === 'admin') ? 'restricted' : 'none');
         $_SESSION['admin_elevated_until'] = 0;
 
@@ -655,6 +653,7 @@ class AuthController extends Controller
             unset($_SESSION['admin_passwordless_user_id']);
 
             session_regenerate_id(true);
+            bind_authenticated_session_context();
             set_flash('success', 'Acesso admin passwordless concluído com sucesso.');
             $this->redirect(base_path('/admin'));
         }
@@ -662,6 +661,7 @@ class AuthController extends Controller
         unset($_SESSION['pre_2fa_user_id'], $_SESSION['pre_2fa_email']);
 
         session_regenerate_id(true);
+        bind_authenticated_session_context();
 
         $this->redirect(base_path('/dashboard'));
     }
@@ -817,7 +817,23 @@ class AuthController extends Controller
 
     public function logout(): void
     {
-        verify_csrf();
+        // Logout is a safe action; if CSRF token expired/missing, still end session.
+        $token = $_POST['_csrf'] ?? '';
+        $csrfOk = !empty($_SESSION['csrf_token'])
+            && is_string($token)
+            && hash_equals((string)$_SESSION['csrf_token'], $token);
+
+        if (!$csrfOk) {
+            $suspiciousModel = new SuspiciousEvent();
+            $suspiciousModel->create(
+                isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null,
+                null,
+                client_ip(),
+                'logout_csrf_mismatch',
+                'Logout recebido com CSRF ausente ou inválido'
+            );
+        }
+
         logout_user();
         $this->redirect(base_path('/login'));
     }

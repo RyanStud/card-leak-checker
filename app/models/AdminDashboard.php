@@ -99,8 +99,9 @@ class AdminDashboard
     {
         if ($since !== null) {
             $stmt = $this->pdo->prepare(
-                'SELECT se.*
+                'SELECT se.*, COALESCE(se.email, u.email) AS email
                  FROM suspicious_events se
+                 LEFT JOIN users u ON u.id = se.user_id
                  WHERE se.created_at >= ?
                  ORDER BY se.created_at DESC
                  LIMIT ?'
@@ -109,8 +110,9 @@ class AdminDashboard
             $stmt->bindValue(2, $limit, PDO::PARAM_INT);
         } else {
             $stmt = $this->pdo->prepare(
-                'SELECT se.*
+                'SELECT se.*, COALESCE(se.email, u.email) AS email
                  FROM suspicious_events se
+                 LEFT JOIN users u ON u.id = se.user_id
                  ORDER BY se.created_at DESC
                  LIMIT ?'
             );
@@ -195,6 +197,61 @@ class AdminDashboard
             );
         }
 
+        return $stmt->fetchAll();
+    }
+
+    public function getRecentCriticalSessionEvents(int $limit = 20, ?string $since = null): array
+    {
+        $types = [
+            'session_hijack_suspected',
+            'session_guard_missing',
+            'session_guard_mismatch',
+            'session_context_missing',
+        ];
+
+        $placeholders = implode(', ', array_fill(0, count($types), '?'));
+
+        // Build query that prefers the explicit email on the event but falls back to the user's email
+        if ($since !== null) {
+            $sql =
+                'SELECT se.*, COALESCE(se.email, u.email) AS email
+                 FROM suspicious_events se
+                 LEFT JOIN users u ON u.id = se.user_id
+                 WHERE se.event_type IN (' . $placeholders . ')
+                   AND se.created_at >= ?
+                 ORDER BY se.created_at DESC
+                 LIMIT ?';
+
+            $stmt = $this->pdo->prepare($sql);
+            $index = 1;
+
+            foreach ($types as $type) {
+                $stmt->bindValue($index++, $type, PDO::PARAM_STR);
+            }
+
+            $stmt->bindValue($index++, $since, PDO::PARAM_STR);
+            $stmt->bindValue($index, $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll();
+        }
+
+        $sql =
+            'SELECT se.*, COALESCE(se.email, u.email) AS email
+             FROM suspicious_events se
+             LEFT JOIN users u ON u.id = se.user_id
+             WHERE se.event_type IN (' . $placeholders . ')
+             ORDER BY se.created_at DESC
+             LIMIT ?';
+
+        $stmt = $this->pdo->prepare($sql);
+        $index = 1;
+
+        foreach ($types as $type) {
+            $stmt->bindValue($index++, $type, PDO::PARAM_STR);
+        }
+
+        $stmt->bindValue($index, $limit, PDO::PARAM_INT);
+        $stmt->execute();
         return $stmt->fetchAll();
     }
 

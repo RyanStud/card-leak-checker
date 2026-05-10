@@ -49,6 +49,23 @@
 
     <p class="small">Exibindo dados de: <strong><?= e($allowedRanges[$selectedRange]['label'] ?? '') ?></strong></p>
 
+    <?php if (!empty($criticalSessionEvents)): ?>
+        <section style="border:1px solid #b91c1c;background:#fef2f2;color:#7f1d1d;padding:12px;margin:12px 0;">
+            <strong>Alerta de sessao:</strong>
+            Foram detectados <?= (int)count($criticalSessionEvents) ?> eventos criticos de sessao no periodo selecionado.
+            <ul style="margin:8px 0 0 18px;">
+                <?php foreach ($criticalSessionEvents as $event): ?>
+                    <li>
+                        <?= e($event['created_at'] ?? '-') ?> |
+                        <?= e($event['event_type'] ?? '-') ?> |
+                        IP <?= e($event['ip_address'] ?? '-') ?> |
+                        user_id <?= isset($event['user_id']) && $event['user_id'] !== null ? (int)$event['user_id'] : '-' ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </section>
+    <?php endif; ?>
+
     <h2>Visao geral</h2>
     <div class="cards">
         <div class="card"><strong>Usuarios</strong><br><?= (int)$counts['users'] ?></div>
@@ -132,7 +149,9 @@
                 <td><?= e($row['email'] ?? '-') ?></td>
                 <td><?= e($row['ip_address']) ?></td>
                 <td class="danger"><?= e($row['event_type']) ?></td>
-                <td><span class="small"><?= e($row['details'] ?? '-') ?></span></td>
+                <td style="max-width:480px;white-space:pre-wrap;word-break:break-word;">
+                    <span class="small" style="display:block;"><?= e($row['details'] ?? '-') ?></span>
+                </td>
                 <td><?= e($row['created_at']) ?></td>
             </tr>
         <?php endforeach; ?>
