@@ -190,6 +190,8 @@ $router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
 $router->get('/about', [PrivacyController::class, 'about']);
 
+$router->get('/captcha/image', [AuthController::class, 'captchaImage']);
+
 $router->get('/reset-password', [AuthController::class, 'showResetPassword']);
 $router->post('/reset-password', [AuthController::class, 'resetPassword']);
 

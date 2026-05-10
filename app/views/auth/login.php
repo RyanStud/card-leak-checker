@@ -34,8 +34,9 @@
 
         <div class="captcha-box" role="group" aria-label="Desafio captcha">
             <p class="captcha-box__label">Captcha</p>
-            <p class="captcha-box__question"><?= e($captchaQuestion ?? '') ?></p>
-            <input type="text" name="captcha_answer" inputmode="numeric" placeholder="Digite o resultado" required>
+            <img src="<?= e($captchaImageUrl ?? '') ?>" alt="Imagem CAPTCHA" class="captcha-box__image" loading="lazy">
+            <input type="text" name="captcha_answer" placeholder="Digite os caracteres da imagem" required>
+            <small>Digite os caracteres que você vê acima (maiúsculas ou minúsculas)</small>
         </div>
 
         <button type="submit">Entrar</button>

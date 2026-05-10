@@ -6,7 +6,7 @@ class AuthController extends Controller
     {
         $captcha = captcha_get_or_create('register');
         $this->view('auth/register', [
-            'captchaQuestion' => $captcha['question'] ?? '',
+            'captchaImageUrl' => captcha_image_url('register'),
         ]);
     }
 
@@ -18,7 +18,7 @@ class AuthController extends Controller
         $email = clean_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $lgpdConsent = $_POST['lgpd_consent'] ?? '';
-        $captchaAnswer = clean_numeric_text($_POST['captcha_answer'] ?? '');
+        $captchaAnswer = clean_text($_POST['captcha_answer'] ?? '');
 
         $_SESSION['old'] = [
             'name' => $name,
@@ -93,8 +93,8 @@ class AuthController extends Controller
         $adminCaptcha = captcha_get_or_create('admin_passwordless');
 
         $this->view('auth/login', [
-            'captchaQuestion' => $captcha['question'] ?? '',
-            'adminCaptchaQuestion' => $adminCaptcha['question'] ?? '',
+            'captchaImageUrl' => captcha_image_url('login'),
+            'adminCaptchaImageUrl' => captcha_image_url('admin_passwordless'),
         ]);
     }
 
@@ -136,7 +136,7 @@ class AuthController extends Controller
 
         $email = clean_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
-        $captchaAnswer = clean_numeric_text($_POST['captcha_answer'] ?? '');
+        $captchaAnswer = clean_text($_POST['captcha_answer'] ?? '');
         $ip = client_ip();
 
         if (!captcha_validate('login', $captchaAnswer)) {
@@ -236,7 +236,7 @@ class AuthController extends Controller
         }
 
         $this->view('auth/admin-passwordless', [
-            'captchaQuestion' => $captcha['question'] ?? '',
+            'captchaImageUrl' => captcha_image_url('admin_passwordless'),
             'canUseQuestions' => $canUseQuestions,
             'codeSentAt' => $codeSentAt,
         ]);
@@ -247,7 +247,7 @@ class AuthController extends Controller
         verify_csrf();
 
         $email = clean_email($_POST['email'] ?? '');
-        $captchaAnswer = clean_numeric_text($_POST['captcha_answer'] ?? '');
+        $captchaAnswer = clean_text($_POST['captcha_answer'] ?? '');
 
         if (!captcha_validate('admin_passwordless', $captchaAnswer)) {
             captcha_reset('admin_passwordless');
@@ -668,7 +668,10 @@ class AuthController extends Controller
 
     public function showForgotPassword(): void
     {
-        $this->view('auth/forgot-password');
+        $captcha = captcha_get_or_create('forgot_password');
+        $this->view('auth/forgot-password', [
+            'captchaImageUrl' => captcha_image_url('forgot_password'),
+        ]);
     }
 
     public function forgotPassword(): void
@@ -676,6 +679,14 @@ class AuthController extends Controller
         verify_csrf();
 
         $email = clean_email($_POST['email'] ?? '');
+        $captchaAnswer = clean_text($_POST['captcha_answer'] ?? '');
+
+        if (!captcha_validate('forgot_password', $captchaAnswer)) {
+            captcha_reset('forgot_password');
+            set_flash('error', 'Captcha inválido.');
+            $this->redirect(base_path('/forgot-password'));
+        }
+
         $ip = client_ip();
         $suspiciousModel = new SuspiciousEvent();
 
@@ -748,8 +759,10 @@ class AuthController extends Controller
             $this->redirect(base_path('/login'));
         }
 
+        $captcha = captcha_get_or_create('reset_password');
         $this->view('auth/reset-password', [
-            'token' => $token
+            'token' => $token,
+            'captchaImageUrl' => captcha_image_url('reset_password'),
         ]);
     }
 
@@ -760,6 +773,13 @@ class AuthController extends Controller
         $token = clean_text($_POST['token'] ?? '');
         $password = $_POST['password'] ?? '';
         $passwordConfirm = $_POST['password_confirmation'] ?? '';
+        $captchaAnswer = clean_text($_POST['captcha_answer'] ?? '');
+
+        if (!captcha_validate('reset_password', $captchaAnswer)) {
+            captcha_reset('reset_password');
+            set_flash('error', 'Captcha inválido.');
+            $this->redirect(base_path('/reset-password') . '?token=' . urlencode($token));
+        }
 
         if ($token === '') {
             set_flash('error', 'Token inválido.');
@@ -800,5 +820,30 @@ class AuthController extends Controller
         verify_csrf();
         logout_user();
         $this->redirect(base_path('/login'));
+    }
+
+    public function captchaImage(): void
+    {
+        header('Content-Type: image/png');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Expires: 0');
+        
+        $context = clean_text($_GET['context'] ?? 'default');
+        $key = 'captcha_' . $context;
+        
+        if (!isset($_SESSION[$key])) {
+            $captcha = captcha_get_or_create($context);
+        } else {
+            $captcha = $_SESSION[$key];
+        }
+        
+        try {
+            echo captcha_generate_image($captcha['answer'] ?? '');
+        } catch (Exception $e) {
+            error_log('CAPTCHA generation error: ' . $e->getMessage());
+            http_response_code(500);
+            echo 'Error generating CAPTCHA';
+        }
+        exit;
     }
 }

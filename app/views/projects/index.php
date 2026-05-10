@@ -381,7 +381,7 @@
                                                                     <?php if (($member['role'] ?? 'member') === 'owner'): ?>
                                                                         <span style="color: var(--muted); font-size: 0.85rem;">Dono</span>
                                                                     <?php else: ?>
-                                                                        <form method="POST" action="<?= e(base_path('/projects/revoke-access')) ?>" style="margin: 0;" onsubmit="return confirm('Remover o acesso deste usuário?');">
+                                                                        <form method="POST" action="<?= e(base_path('/projects/revoke-access')) ?>" style="margin: 0;" data-confirm-action>
                                                                             <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                                                                             <input type="hidden" name="project_id" value="<?= $projectId ?>">
                                                                             <input type="hidden" name="target_user_id" value="<?= (int)$member['user_id'] ?>">

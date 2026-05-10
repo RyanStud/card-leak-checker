@@ -11,3 +11,4 @@ $footerDate = date('d/m/Y');
 <?php endif; ?>
 
 <script src="<?= e(base_path('/public/js/banner-toggle.js')) ?>" defer></script>
+<script src="<?= e(base_path('/public/js/form-confirmations.js')) ?>" defer></script>

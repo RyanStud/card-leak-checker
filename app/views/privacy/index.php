@@ -128,8 +128,7 @@
     <h3>1. Apagar histórico de verificações</h3>
     <p>Remove todos os registros da tabela de verificações vinculados ao seu usuário.</p>
 
-    <form method="POST" action="<?= e(base_path('/privacy/delete-history')) ?>"
-          onsubmit="return confirm('Deseja realmente apagar seu histórico de verificações?');">
+    <form method="POST" action="<?= e(base_path('/privacy/delete-history')) ?>" data-confirm-action>
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
         <button type="submit">Apagar histórico</button>
     </form>
@@ -139,8 +138,7 @@
     <h3>2. Apagar projetos próprios</h3>
     <p>Remove os projetos que você criou. Isso pode apagar também dados relacionados por cascade.</p>
 
-    <form method="POST" action="<?= e(base_path('/privacy/delete-projects')) ?>"
-          onsubmit="return confirm('Deseja realmente apagar todos os seus projetos próprios?');">
+    <form method="POST" action="<?= e(base_path('/privacy/delete-projects')) ?>" data-confirm-action>
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
         <button type="submit">Apagar projetos próprios</button>
     </form>
@@ -153,8 +151,7 @@
         Para maior segurança, confirme com sua senha e com o código do Google Authenticator.
     </p>
 
-    <form method="POST" action="<?= e(base_path('/privacy/delete-account')) ?>"
-          onsubmit="return confirm('Tem certeza que deseja excluir sua conta definitivamente?');">
+    <form method="POST" action="<?= e(base_path('/privacy/delete-account')) ?>" data-confirm-action>
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
         <div>
