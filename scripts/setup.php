@@ -301,12 +301,15 @@ function persist_env_var_php_fpm(string $name, string $value): void
         $any = true;
 
         $serviceName = "php{$version}-fpm";
+        $reloadResult = reload_php_fpm($serviceName);
 
-        if (reload_systemd_service($serviceName)) {
-            echo "     Serviço recarregado: {$serviceName}\n";
+        if ($reloadResult['ok']) {
+            echo "     Serviço recarregado via {$reloadResult['method']}: {$serviceName}\n";
         } else {
-            echo "     [!] Recarregue manualmente: systemctl reload {$serviceName}\n";
-            echo "         (ou kill -USR2 \$(cat /run/php/{$serviceName}.pid) se não houver systemd ativo)\n";
+            echo "     [!] Não foi possível recarregar {$serviceName} automaticamente. Tente:\n";
+            echo "         systemctl reload {$serviceName}\n";
+            echo "         service {$serviceName} reload\n";
+            echo "         kill -USR2 \$(cat /run/php/{$serviceName}.pid)\n";
         }
     }
 
@@ -315,19 +318,35 @@ function persist_env_var_php_fpm(string $name, string $value): void
     }
 }
 
-function reload_systemd_service(string $serviceName): bool
+function reload_php_fpm(string $serviceName): array
 {
-    $check = [];
-    $checkCode = 0;
-    exec('command -v systemctl 2>/dev/null', $check, $checkCode);
+    $attempts = [
+        ['method' => 'systemctl', 'cmd' => 'systemctl reload ' . escapeshellarg($serviceName) . ' 2>&1'],
+        ['method' => 'service',   'cmd' => 'service ' . escapeshellarg($serviceName) . ' reload 2>&1'],
+        ['method' => 'kill -USR2', 'cmd' => 'kill -USR2 $(cat /run/php/' . $serviceName . '.pid 2>/dev/null) 2>&1'],
+    ];
 
-    if ($checkCode !== 0) {
-        return false;
+    foreach ($attempts as $attempt) {
+        if (!command_available(explode(' ', $attempt['method'])[0])) {
+            continue;
+        }
+
+        $output = [];
+        $code = 0;
+        exec($attempt['cmd'], $output, $code);
+
+        if ($code === 0) {
+            return ['ok' => true, 'method' => $attempt['method']];
+        }
     }
 
+    return ['ok' => false, 'method' => ''];
+}
+
+function command_available(string $cmd): bool
+{
     $output = [];
     $code = 0;
-    exec('systemctl reload ' . escapeshellarg($serviceName) . ' 2>&1', $output, $code);
-
+    exec('command -v ' . escapeshellarg($cmd) . ' 2>/dev/null', $output, $code);
     return $code === 0;
 }
