@@ -580,7 +580,7 @@ class AuthController extends Controller
         session_regenerate_id(true);
         bind_authenticated_session_context();
 
-        $this->redirect(base_path('/admin'));
+        $this->redirect(base_path('/dashboard'));
     }
 
     public function showVerify2FA(): void
