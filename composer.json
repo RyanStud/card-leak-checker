@@ -32,7 +32,17 @@
         ]
     },
     "scripts": {
-        "generate-secrets": "php generate-secrets.php"
+        "generate-secrets": "php generate-secrets.php",
+        "setup": "php scripts/setup.php",
+        "post-install-cmd": [
+            "@setup"
+        ],
+        "post-update-cmd": [
+            "@setup"
+        ]
+    },
+    "scripts-descriptions": {
+        "setup": "Configura SECRET_MASTER_KEY como variável de ambiente do SO (Windows/Linux) e gera config/secrets.enc."
     },
     "minimum-stability": "stable",
     "prefer-stable": true

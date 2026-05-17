@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/app/core/Env.php';
+require_once __DIR__ . '/app/core/Env.php';
 Env::load(__DIR__ . '/.env');
 
 $masterKey = getenv('SECRET_MASTER_KEY');

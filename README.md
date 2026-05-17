@@ -530,67 +530,100 @@ Eventos registrados:
 ### 1. Preparar ambiente
 
 - Instale PHP 8+, MySQL/MariaDB e Apache (ou use XAMPP).
-- No diretório do projeto, rode `composer install`.
+- Instale o [Composer](https://getcomposer.org/).
 - Crie o banco de dados e aplique o schema em `database/schema.sql`.
 
-### 2. Criar arquivo `.env` com base no `.env.example`
+### 2. Criar `.env` com base no `.env.example`
 
 - Copie `.env.example` para `.env`.
-- Preencha os valores básicos de aplicação e banco:
+- Preencha os valores básicos:
 	- `APP_ENV`, `APP_DEBUG`, `APP_URL`
 	- `DB_HOST`, `DB_PORT`, `DB_NAME`
-- Defina também:
-	- `MASTER_KEY_FILE` com caminho absoluto do arquivo da master key
-	- `SECRETS_FILE=config/secrets.enc`
-	- `TELEGRAM_MODE=log` para desenvolvimento local (sem webhook real)
-	- `ADMIN_ELEVATION_TTL` para tempo da elevação admin em segundos
+	- `TELEGRAM_MODE=log` para desenvolvimento local
+	- `ADMIN_ELEVATION_TTL` em segundos
+- Deixe `MASTER_KEY_FILE` vazio. A chave mestra fica em variável de ambiente do SO.
 
-Exemplo de caminho da master key no Windows:
-
-```env
-MASTER_KEY_FILE=C:\xampp\htdocs\cardleak.masterkey
-```
-
-### 3. Criar arquivo `config/secrets.json` com base no `config/secrets.json.example`
+### 3. Criar `config/secrets.json` com base no exemplo
 
 - Copie `config/secrets.json.example` para `config/secrets.json`.
-- Alternativa rápida: copie `config/secrets.simple.example.json` para `config/secrets.json` (sem chaves `_comment_`).
-- Preencha os campos reais de segredo:
-	- `DB_USER`: usuário do banco
-	- `DB_PASS`: senha do banco
-	- `APP_KEY_TELEGRAM`: token do bot do Telegram
-	- `TELEGRAM_WEBHOOK_SECRET`: token de segurança do webhook Telegram
-	- `CSRF_SECRET`: segredo para proteção CSRF
-	- `MAILTRAP_API_TOKEN`: token do Mailtrap API
-	- `MAIL_USER`: usuário SMTP
-	- `MAIL_PASS`: senha SMTP
+- Preencha `DB_USER`, `DB_PASS`, `APP_KEY_TELEGRAM`, `TELEGRAM_WEBHOOK_SECRET`, `CSRF_SECRET`, `MAILTRAP_API_TOKEN`, `MAIL_USER`, `MAIL_PASS`, `CARD_LOOKUP_PEPPER`, `CARD_VAULT_KEY`.
+- Pode remover as chaves `_comment_` do exemplo.
 
-Observação:
-
-- As chaves iniciadas com `_comment_` no arquivo de exemplo são apenas explicativas. Você pode remover essas chaves no `config/secrets.json` final, se quiser manter somente os segredos.
-
-### 4. Gerar arquivo criptografado de segredos
-
-Com `.env` e `config/secrets.json` preenchidos, execute:
+### 4. Rodar `composer install` (Linux ou Windows)
 
 ```bash
-php generate-secrets.php
+composer install
 ```
 
-O comando vai:
+O `post-install-cmd` dispara automaticamente `composer setup`, que:
 
-- Usar `SECRET_MASTER_KEY` (se existir no ambiente), ou
-- Ler a chave do arquivo apontado em `MASTER_KEY_FILE`.
+1. Pede a `SECRET_MASTER_KEY` uma única vez (input oculto no terminal).
+2. Persiste a chave como variável de ambiente do SO:
+	 - **Windows:** `setx SECRET_MASTER_KEY ...` no escopo do usuário (sem precisar de admin).
+	 - **Linux/macOS:** linha `export SECRET_MASTER_KEY=...` em `~/.bashrc` ou `~/.zshrc`.
+3. Gera `config/secrets.enc` criptografado com AES-256-GCM.
 
-Saída esperada:
+Para re-executar manualmente:
 
-- Geração de `config/secrets.enc`.
+```bash
+composer setup
+```
 
-### 5. Pós-geração e execução
+Se a `SECRET_MASTER_KEY` já estiver presente no ambiente, o script pula a entrada interativa e só regenera o `config/secrets.enc` quando há `config/secrets.json` para criptografar.
 
-- Valide a aplicação com o `config/secrets.enc` gerado.
-- Remova `config/secrets.json` do ambiente final (produção).
-- Inicie Apache/PHP e acesse o `APP_URL` configurado.
+### 5. Refletir a nova variável de ambiente
+
+A `SECRET_MASTER_KEY` é gravada no sistema, mas processos já em execução não a enxergam automaticamente:
+
+- **Windows (XAMPP/Apache):** feche o terminal atual e abra um novo. Reinicie o Apache (XAMPP Control Panel: Stop → Start) para que ele herde a variável.
+- **Linux com Apache:** use `SetEnv SECRET_MASTER_KEY ...` no virtualhost ou `EnvironmentFile` no service do systemd.
+- **Linux com nginx + php-fpm:** o `composer setup` já cuida disso. Ele grava `env[SECRET_MASTER_KEY] = "..."` em `/etc/php/X.Y/fpm/pool.d/www.conf` (permissões `640 root:root`) e roda `systemctl reload phpX.Y-fpm`. Se rodar como não-root, faça manualmente como root depois.
+
+### 6. Pós-geração e execução
+
+- Valide a aplicação carregando uma rota que dependa de segredos (ex.: login).
+- Remova `config/secrets.json` do ambiente final (produção). A aplicação só precisa do `config/secrets.enc` + `SECRET_MASTER_KEY` na env do SO.
+- O fluxo antigo via `MASTER_KEY_FILE` continua funcionando como fallback, caso prefira manter um arquivo de chave em produção.
+
+### 7. Deploy em VM/container Ubuntu (lab da faculdade, nginx + php-fpm)
+
+Cenário típico: container Ubuntu acessado via terminal, com nginx + php-fpm já instalados, mas sem composer. O diretório `/var/www/html` costuma ser um volume persistente (sobrevive entre sessões), enquanto `/etc/` pode estar no overlay (perde mudanças quando o container é recriado).
+
+```bash
+# 1. Instalar pré-requisitos (uma vez por sessão se o container reset)
+apt update && apt install -y composer git
+
+# 2. Clonar o projeto no volume persistente
+cd /var/www/html
+rm -f index.php   # remove o default
+git clone <URL_DO_REPO> .
+
+# 3. Preparar arquivos de configuração
+cp .env.example .env
+# editar .env (APP_ENV=production, DB_HOST, DB_NAME, etc.)
+
+cp config/secrets.json.example config/secrets.json
+# editar config/secrets.json com os segredos reais
+
+# 4. Instalar dependências e configurar a chave mestra
+composer install
+# → vai pedir a SECRET_MASTER_KEY (input oculto)
+# → grava em /root/.bashrc e /etc/php/8.3/fpm/pool.d/www.conf
+# → roda systemctl reload php8.3-fpm
+# → gera config/secrets.enc
+
+# 5. Verificar se o vhost do nginx aponta para /var/www/html e passa PHP para php-fpm.
+#    A maioria dos labs já vem com isso configurado.
+
+# 6. Remover o secrets.json depois de validar
+rm config/secrets.json
+```
+
+**Observações importantes nesse cenário:**
+
+- Como `/etc/` é overlay e a config do php-fpm não persiste, **toda vez que o container for recriado** você roda `composer install` de novo. A chave é redigitada uma única vez por sessão e tudo é reconfigurado automaticamente.
+- O `config/secrets.enc` fica em `/var/www/html/config/`, que persiste. Não precisa regerar entre sessões se os segredos não mudaram — basta redigitar a `SECRET_MASTER_KEY` para que o php-fpm consiga decifrar o arquivo já existente.
+- Se quiser pular a geração e só reconfigurar a chave (quando `secrets.enc` já existe e `secrets.json` foi apagado), rode `composer setup` em vez de `composer install`.
 
 ### 5.1 Telegram webhook e modo local
 

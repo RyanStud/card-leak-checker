@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(SECRET_MASTER_KEY=\"dummy-test-key-for-syntax-check\" php -l scripts/setup.php)",
+      "Bash(SECRET_MASTER_KEY=\"dummy-test-key-for-syntax-check\" php -l generate-secrets.php)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\xampp\" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name; \\(Get-Command php -ErrorAction SilentlyContinue\\).Source)"
+    ]
+  }
+}
