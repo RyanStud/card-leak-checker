@@ -26,7 +26,7 @@ if ($secretToken === '') {
 }
 
 $webhookUrl = $appUrl . '/webhook/telegram';
-$apiUrl = 'https://api.telegram.org/bot' . rawurlencode($botToken) . '/setWebhook';
+$apiUrl = 'https://api.telegram.org/bot' . $botToken . '/setWebhook';
 
 $payload = json_encode([
     'url' => $webhookUrl,
@@ -38,19 +38,22 @@ if ($payload === false) {
     exit("Falha ao gerar payload JSON\n");
 }
 
-$context = stream_context_create([
-    'http' => [
-        'method' => 'POST',
-        'header' => "Content-Type: application/json\r\n",
-        'content' => $payload,
-        'timeout' => 10,
-        'ignore_errors' => true,
-    ],
+$ch = curl_init($apiUrl);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+    CURLOPT_POSTFIELDS => $payload,
+    CURLOPT_TIMEOUT => 15,
 ]);
 
-$response = file_get_contents($apiUrl, false, $context);
+$response = curl_exec($ch);
+$httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlError = curl_error($ch);
+curl_close($ch);
+
 if ($response === false) {
-    exit("Falha ao chamar setWebhook\n");
+    exit("Falha ao chamar setWebhook: {$curlError}\n");
 }
 
-echo $response . PHP_EOL;
+echo "HTTP {$httpCode}\n" . $response . PHP_EOL;
