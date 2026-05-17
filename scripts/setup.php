@@ -81,6 +81,10 @@ echo "[..] Gerando config/secrets.enc a partir de config/secrets.json...\n";
 
 require_once $projectRoot . '/generate-secrets.php';
 
+if (!$isWindows) {
+    maybe_start_telegram_polling($projectRoot);
+}
+
 echo "[ok] Setup concluído.\n";
 echo "     Lembre-se de remover config/secrets.json após validar a aplicação.\n";
 
@@ -349,4 +353,66 @@ function command_available(string $cmd): bool
     $code = 0;
     exec('command -v ' . escapeshellarg($cmd) . ' 2>/dev/null', $output, $code);
     return $code === 0;
+}
+
+function maybe_start_telegram_polling(string $projectRoot): void
+{
+    $mode = strtolower(trim((string) Env::get('TELEGRAM_MODE', '')));
+    if ($mode !== 'polling') {
+        return;
+    }
+
+    $pidFile = $projectRoot . '/storage/telegram-polling.pid';
+
+    if (file_exists($pidFile)) {
+        $pid = (int) trim((string) file_get_contents($pidFile));
+        if ($pid > 0 && (
+            (function_exists('posix_kill') && @posix_kill($pid, 0))
+            || is_dir('/proc/' . $pid)
+        )) {
+            echo "[ok] telegram-polling já em execução (pid={$pid}).\n";
+            return;
+        }
+        @unlink($pidFile);
+    }
+
+    $logsDir = $projectRoot . '/storage/logs';
+    if (!is_dir($logsDir)) {
+        @mkdir($logsDir, 0755, true);
+    }
+
+    $logFile = $logsDir . '/polling.log';
+    $script = $projectRoot . '/scripts/telegram-polling.php';
+
+    // setsid desacopla do TTY pra sobreviver ao composer terminar
+    $hasSetsid = command_available('setsid');
+    $hasNohup = command_available('nohup');
+
+    if ($hasSetsid) {
+        $cmd = 'setsid php ' . escapeshellarg($script) . ' >> ' . escapeshellarg($logFile) . ' 2>&1 < /dev/null &';
+    } elseif ($hasNohup) {
+        $cmd = 'nohup php ' . escapeshellarg($script) . ' >> ' . escapeshellarg($logFile) . ' 2>&1 < /dev/null &';
+    } else {
+        echo "     [aviso] setsid/nohup ausentes. Inicie manualmente:\n";
+        echo "             nohup php scripts/telegram-polling.php > storage/logs/polling.log 2>&1 &\n";
+        return;
+    }
+
+    exec($cmd);
+
+    // Espera curta pro processo gravar o PID
+    for ($i = 0; $i < 20; $i++) {
+        usleep(100000);
+        if (file_exists($pidFile)) {
+            $pid = (int) trim((string) file_get_contents($pidFile));
+            if ($pid > 0) {
+                echo "[ok] telegram-polling iniciado em background (pid={$pid}).\n";
+                echo "     Logs: storage/logs/polling.log\n";
+                return;
+            }
+        }
+    }
+
+    echo "     [aviso] Polling foi disparado, mas o PID não apareceu em storage/telegram-polling.pid.\n";
+    echo "             Verifique storage/logs/polling.log para erros.\n";
 }

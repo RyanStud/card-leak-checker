@@ -36,10 +36,16 @@ class TelegramController extends Controller
             return;
         }
 
+        $this->processUpdate($update);
+
+        http_response_code(200);
+        echo 'ok';
+    }
+
+    public function processUpdate(array $update): void
+    {
         $message = $update['message'] ?? null;
         if (!is_array($message)) {
-            http_response_code(200);
-            echo 'ok';
             return;
         }
 
@@ -49,8 +55,6 @@ class TelegramController extends Controller
         $chatId = (int)($chat['id'] ?? 0);
 
         if ($telegramUserId <= 0 || $chatId === 0) {
-            http_response_code(200);
-            echo 'ok';
             return;
         }
 
@@ -63,16 +67,12 @@ class TelegramController extends Controller
 
             if (!$pending) {
                 $this->sendTelegramMessage($chatId, 'Codigo de vinculacao invalido ou expirado. Gere um novo link no dashboard.');
-                http_response_code(200);
-                echo 'ok';
                 return;
             }
 
             $existingByTelegram = $telegramModel->findByTelegramUserId($telegramUserId);
             if ($existingByTelegram && (int)$existingByTelegram['user_id'] !== (int)$pending['user_id']) {
                 $this->sendTelegramMessage($chatId, 'Este Telegram ja esta vinculado a outra conta.');
-                http_response_code(200);
-                echo 'ok';
                 return;
             }
 
@@ -90,9 +90,6 @@ class TelegramController extends Controller
             );
 
             $this->sendTelegramMessage($chatId, 'Conta vinculada com sucesso. Agora voce pode receber verificacoes e alertas por aqui.');
-
-            http_response_code(200);
-            echo 'ok';
             return;
         }
 
@@ -101,8 +98,6 @@ class TelegramController extends Controller
                 $chatId,
                 'Ola. Para vincular sua conta, gere o link no dashboard e clique nele. Se precisar, envie seu contato usando o botao de compartilhar contato.'
             );
-            http_response_code(200);
-            echo 'ok';
             return;
         }
 
@@ -115,15 +110,11 @@ class TelegramController extends Controller
             if ($contactUserId === $telegramUserId && is_string($digits) && $digits !== '') {
                 $telegramModel->savePhoneByTelegramUserId($telegramUserId, '+' . $digits);
                 $this->sendTelegramMessage($chatId, 'Telefone atualizado com sucesso.');
-                http_response_code(200);
-                echo 'ok';
                 return;
             }
         }
 
         $telegramModel->touchInteractionByTelegramUserId($telegramUserId);
-        http_response_code(200);
-        echo 'ok';
     }
 
     private function sendTelegramMessage(int $chatId, string $text): void

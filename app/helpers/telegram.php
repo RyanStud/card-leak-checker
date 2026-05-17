@@ -15,7 +15,7 @@ function telegram_send_message(int $chatId, string $text): bool
         return false;
     }
 
-    $url = 'https://api.telegram.org/bot' . rawurlencode($botToken) . '/sendMessage';
+    $url = 'https://api.telegram.org/bot' . $botToken . '/sendMessage';
     $payload = json_encode([
         'chat_id' => $chatId,
         'text' => $text,
@@ -27,19 +27,27 @@ function telegram_send_message(int $chatId, string $text): bool
         return false;
     }
 
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'POST',
-            'header' => "Content-Type: application/json\r\n",
-            'content' => $payload,
-            'timeout' => 4,
-            'ignore_errors' => true,
-        ],
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_TIMEOUT => 10,
     ]);
 
-    $response = @file_get_contents($url, false, $context);
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
     if ($response === false) {
-        app_log('telegram_send_error chat_id=' . $chatId);
+        app_log('telegram_send_error chat_id=' . $chatId . ' curl=' . $curlError);
+        return false;
+    }
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        app_log('telegram_send_http_error chat_id=' . $chatId . ' http=' . $httpCode . ' body=' . $response);
         return false;
     }
 

@@ -650,6 +650,48 @@ Desenvolvimento local (sem webhook público):
 	- clique em gerar código
 	- copie o código do log e valide no formulário
 
+#### Modo polling (ambiente fechado, ex.: lab atrás de VPN)
+
+Quando o servidor não pode receber webhooks (não está exposto na internet pública), use `TELEGRAM_MODE=polling`. Um script CLI consulta `getUpdates` em loop e processa as mensagens com a mesma lógica do webhook.
+
+Setup:
+
+1. No `.env`:
+	 - `TELEGRAM_MODE=polling`
+	 - `TELEGRAM_BOT_USERNAME=<username_do_bot>` (sem `@`)
+	 - `TELEGRAM_POLLING_INTERVAL=10` (opcional, default 10s)
+2. Preencha `APP_KEY_TELEGRAM` no `config/secrets.json` e rode `composer setup` (ou `composer install`).
+
+Pronto. Quando `TELEGRAM_MODE=polling`, o `composer setup` faz tudo:
+
+1. Regera `config/secrets.enc`.
+2. Verifica se já existe um polling em execução (via `storage/telegram-polling.pid`).
+3. Se não, inicia `php scripts/telegram-polling.php` em background com `setsid`/`nohup`, gravando em `storage/logs/polling.log`.
+4. Imprime o PID do processo iniciado.
+
+Verificar status / parar manualmente:
+
+```bash
+cat storage/telegram-polling.pid       # PID atual
+ps -p $(cat storage/telegram-polling.pid)   # confere se está vivo
+tail -f storage/logs/polling.log       # acompanhar mensagens
+kill $(cat storage/telegram-polling.pid)   # parar
+```
+
+Pra iniciar manualmente (fora do composer):
+
+```bash
+nohup php scripts/telegram-polling.php > storage/logs/polling.log 2>&1 &
+```
+
+Detalhes:
+
+- O script remove qualquer webhook configurado ao iniciar (`deleteWebhook`).
+- O offset (último `update_id` processado) fica persistido em `storage/telegram_offset.txt`, evitando reprocessar mensagens entre reinícios.
+- O PID do processo fica em `storage/telegram-polling.pid` (auto-removido ao encerrar). O `composer setup` é idempotente: se já tem polling rodando, não inicia outro.
+- Se o processo morrer (container reiniciar, sessão fechar), rode `composer setup` ou inicie manualmente — o polling retoma do último offset.
+- O envio de mensagens (`telegram_send_message`) continua usando a API normalmente; só a *recepção* muda de webhook para polling.
+
 ### 5.2 Importar base de cartões vazados (vault)
 
 Com o banco sincronizado via `database/sync_schema.sql`, execute a importação do CSV para popular `leaked_cards_vault`:

@@ -12,6 +12,15 @@ Config::init();
 $botToken = trim((string)secret('APP_KEY_TELEGRAM', ''));
 $secretToken = trim((string)secret('TELEGRAM_WEBHOOK_SECRET', ''));
 $appUrl = rtrim((string)env('APP_URL', ''), '/');
+$mode = strtolower(trim((string)env('TELEGRAM_MODE', 'api')));
+
+if ($mode === 'polling') {
+    exit("TELEGRAM_MODE=polling: webhook nao deve ser configurado. Rode scripts/telegram-polling.php.\n");
+}
+
+if ($mode === 'log') {
+    exit("TELEGRAM_MODE=log: webhook nao e usado. Ajuste o .env para 'api' antes de configurar.\n");
+}
 
 if ($botToken === '') {
     exit("APP_KEY_TELEGRAM ausente em secrets.enc\n");
