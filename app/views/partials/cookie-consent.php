@@ -1,5 +1,5 @@
 <?php
-$requestPath = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+$requestPath = current_path();
 ?>
 <section class="cookie-consent" aria-label="Consentimento de cookies">
     <div style="flex:1;">

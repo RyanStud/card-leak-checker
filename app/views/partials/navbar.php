@@ -1,5 +1,5 @@
 <?php
-$requestPath = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+$requestPath = current_path();
 
 $isAdmin = is_logged_in() && can_view_admin_area();
 
