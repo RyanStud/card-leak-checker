@@ -113,14 +113,92 @@ function hybrid_crypto_ensure_keys(): array
     ];
 }
 
+/**
+ * Caminhos opcionais (via .env) para usar o certificado/chave reais do servidor
+ * (ex.: Let's Encrypt) em vez do par próprio do app.
+ *
+ * @return array{cert_path:string,key_path:string}
+ */
+function hybrid_crypto_config(): array
+{
+    return [
+        'cert_path' => function_exists('env') ? trim((string) env('HYBRID_CERT_PATH', '')) : '',
+        'key_path' => function_exists('env') ? trim((string) env('HYBRID_PRIVATE_KEY_PATH', '')) : '',
+    ];
+}
+
+/**
+ * Material criptográfico ativo. Se HYBRID_CERT_PATH/HYBRID_PRIVATE_KEY_PATH
+ * estiverem configurados, usa o certificado real do servidor; caso contrário,
+ * usa o par auto-gerado em storage/keys.
+ *
+ * @return array{private_pem:string,public_pem:string,certificate_pem:?string,source:string,key_type:int}
+ */
+function hybrid_crypto_material(): array
+{
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+
+    $cfg = hybrid_crypto_config();
+    $certPath = $cfg['cert_path'];
+    $keyPath = $cfg['key_path'];
+
+    if ($certPath !== '' || $keyPath !== '') {
+        if ($certPath === '' || $keyPath === '') {
+            throw new RuntimeException('Configure HYBRID_CERT_PATH e HYBRID_PRIVATE_KEY_PATH juntos.');
+        }
+        if (!is_readable($certPath)) {
+            throw new RuntimeException("Certificado não legível pelo web server: {$certPath}");
+        }
+        if (!is_readable($keyPath)) {
+            throw new RuntimeException("Chave privada não legível pelo web server: {$keyPath}");
+        }
+
+        $certPem = (string) file_get_contents($certPath);
+        $privPem = (string) file_get_contents($keyPath);
+
+        $pub = openssl_pkey_get_public($certPem);
+        if ($pub === false) {
+            throw new RuntimeException('Falha ao extrair a chave pública do certificado: ' . openssl_error_string());
+        }
+        $details = openssl_pkey_get_details($pub);
+
+        $cache = [
+            'private_pem' => $privPem,
+            'public_pem' => (string) ($details['key'] ?? ''),
+            'certificate_pem' => $certPem,
+            'source' => 'tls:' . $certPath,
+            'key_type' => (int) ($details['type'] ?? -1),
+        ];
+
+        return $cache;
+    }
+
+    $keys = hybrid_crypto_ensure_keys();
+    $pub = openssl_pkey_get_public($keys['public_pem']);
+    $details = $pub !== false ? openssl_pkey_get_details($pub) : [];
+
+    $cache = [
+        'private_pem' => $keys['private_pem'],
+        'public_pem' => $keys['public_pem'],
+        'certificate_pem' => $keys['certificate_pem'],
+        'source' => 'app:storage/keys',
+        'key_type' => (int) ($details['type'] ?? OPENSSL_KEYTYPE_RSA),
+    ];
+
+    return $cache;
+}
+
 function hybrid_crypto_public_key_pem(): string
 {
-    return hybrid_crypto_ensure_keys()['public_pem'];
+    return hybrid_crypto_material()['public_pem'];
 }
 
 function hybrid_crypto_certificate_pem(): ?string
 {
-    return hybrid_crypto_ensure_keys()['certificate_pem'];
+    return hybrid_crypto_material()['certificate_pem'];
 }
 
 /**
@@ -155,7 +233,18 @@ function hybrid_crypto_pem_to_der(string $pem): string
  */
 function hybrid_crypto_decrypt(string $encKeyB64, string $ivB64, string $payloadB64): ?array
 {
-    $keys = hybrid_crypto_ensure_keys();
+    $material = hybrid_crypto_material();
+
+    // RSA-OAEP exige chave RSA. Certificados ECDSA (comuns no Let's Encrypt) não
+    // servem para este esquema — avisa de forma clara em vez de falhar silencioso.
+    if ($material['key_type'] !== OPENSSL_KEYTYPE_RSA) {
+        hybrid_crypto_console_log(
+            'ERRO: o certificado configurado NÃO é RSA (key_type=' . $material['key_type']
+            . '). RSA-OAEP requer uma chave RSA. Reemita o certificado com --key-type rsa'
+            . ' ou use o par próprio do app (storage/keys).'
+        );
+        return null;
+    }
 
     $encKey = base64_decode($encKeyB64, true);
     $iv = base64_decode($ivB64, true);
@@ -169,7 +258,7 @@ function hybrid_crypto_decrypt(string $encKeyB64, string $ivB64, string $payload
         return null;
     }
 
-    $privateKey = openssl_pkey_get_private($keys['private_pem']);
+    $privateKey = openssl_pkey_get_private($material['private_pem']);
     if ($privateKey === false) {
         return null;
     }

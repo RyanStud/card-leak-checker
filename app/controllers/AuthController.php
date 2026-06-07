@@ -32,7 +32,8 @@ class AuthController extends Controller
 
             // S.3.1.f - Mostra os dados decifrados no console do back.
             hybrid_crypto_console_log(sprintf(
-                'Cadastro decifrado com sucesso | name=%s | email=%s | password=%s | captcha_answer=%s | lgpd_consent=%s',
+                'Cadastro decifrado com sucesso [origem da chave: %s] | name=%s | email=%s | password=%s | captcha_answer=%s | lgpd_consent=%s',
+                hybrid_crypto_material()['source'],
                 (string) ($decrypted['name'] ?? ''),
                 (string) ($decrypted['email'] ?? ''),
                 (string) ($decrypted['password'] ?? ''),

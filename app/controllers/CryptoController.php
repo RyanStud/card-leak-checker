@@ -13,19 +13,19 @@ class CryptoController extends Controller
         header('Cache-Control: no-store');
 
         try {
-            $keys = hybrid_crypto_ensure_keys();
+            $material = hybrid_crypto_material();
 
             echo json_encode([
                 'algorithm' => 'RSA-OAEP',
                 'hash' => 'SHA-1',
-                'keySize' => 2048,
-                'publicKey' => $keys['public_pem'],
-                'certificate' => $keys['certificate_pem'],
+                'source' => $material['source'],
+                'publicKey' => $material['public_pem'],
+                'certificate' => $material['certificate_pem'],
                 'fingerprint' => hybrid_crypto_public_key_fingerprint(),
             ], JSON_UNESCAPED_SLASHES);
         } catch (\Throwable $e) {
             http_response_code(500);
-            echo json_encode(['error' => 'Não foi possível obter a chave pública.']);
+            echo json_encode(['error' => 'Não foi possível obter a chave pública: ' . $e->getMessage()]);
         }
 
         exit;
@@ -41,9 +41,10 @@ class CryptoController extends Controller
         header('Cache-Control: no-store');
 
         try {
-            $keys = hybrid_crypto_ensure_keys();
-            $cert = $keys['certificate_pem'];
+            $material = hybrid_crypto_material();
+            $cert = $material['certificate_pem'];
 
+            echo '# Origem da chave: ' . $material['source'] . "\n";
             echo "# Fingerprint (SHA-256 da chave pública):\n";
             echo '# ' . hybrid_crypto_public_key_fingerprint() . "\n\n";
 
@@ -62,7 +63,7 @@ class CryptoController extends Controller
                 }
             } else {
                 echo "# Certificado X.509 indisponível neste ambiente; exibindo a chave pública:\n\n";
-                echo $keys['public_pem'];
+                echo $material['public_pem'];
             }
         } catch (\Throwable $e) {
             http_response_code(500);

@@ -29,6 +29,9 @@ $secretsEnc = $projectRoot . '/config/secrets.enc';
 
 echo "=== Card Leak Checker :: Setup ===\n";
 
+echo "[..] Provisionando storage/ (logs e chaves da criptografia híbrida)...\n";
+provision_storage_dirs($projectRoot);
+
 $masterKey = read_master_key_from_env();
 
 if ($masterKey !== '') {
@@ -89,6 +92,55 @@ echo "[ok] Setup concluído.\n";
 echo "     Lembre-se de remover config/secrets.json após validar a aplicação.\n";
 
 // ---------------------------------------------------------------------------
+
+function provision_storage_dirs(string $projectRoot): void
+{
+    $storage = $projectRoot . '/storage';
+    $subdirs = [$storage, $storage . '/logs', $storage . '/keys'];
+
+    foreach ($subdirs as $dir) {
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            echo "     [aviso] não foi possível criar {$dir}.\n";
+        }
+    }
+
+    if (PHP_OS_FAMILY === 'Windows') {
+        echo "     storage/ pronto.\n";
+        return;
+    }
+
+    // Detecta o usuário do web server e dá posse de storage/ a ele, para o
+    // php-fpm conseguir gerar storage/keys e gravar os logs (S.3.1).
+    $webUser = '';
+    foreach (['www-data', 'apache', 'nginx', 'http'] as $candidate) {
+        $out = [];
+        $code = 0;
+        exec('id -u ' . escapeshellarg($candidate) . ' 2>/dev/null', $out, $code);
+        if ($code === 0) {
+            $webUser = $candidate;
+            break;
+        }
+    }
+
+    if ($webUser === '') {
+        echo "     [aviso] usuário do web server não detectado; ajuste o dono de storage/ manualmente.\n";
+        return;
+    }
+
+    $out = [];
+    $code = 0;
+    exec('chown -R ' . escapeshellarg($webUser . ':' . $webUser) . ' ' . escapeshellarg($storage) . ' 2>&1', $out, $code);
+
+    if ($code === 0) {
+        @chmod($storage, 0775);
+        echo "     storage/ agora pertence a {$webUser} (chaves e logs graváveis pelo web server).\n";
+    } else {
+        echo "     [aviso] falha ao ajustar dono de storage/ para {$webUser} (rode 'composer setup' como root):\n";
+        if ($out !== []) {
+            echo '       ' . implode("\n       ", $out) . "\n";
+        }
+    }
+}
 
 function read_master_key_from_env(): string
 {
