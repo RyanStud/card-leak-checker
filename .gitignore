@@ -1,6 +1,7 @@
 /vendor/
 /.env
 /storage/logs/*.log
+/storage/keys/
 .DS_Store
 Thumbs.db
 

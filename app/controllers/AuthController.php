@@ -14,6 +14,39 @@ class AuthController extends Controller
     {
         verify_csrf();
 
+        // S.3.1 - Criptografia híbrida: se o cadastro chegou cifrado, decifra a
+        // chave de sessão (RSA-OAEP) e, com ela, os dados do formulário
+        // (AES-256-GCM), recolocando-os em $_POST para o fluxo normal seguir.
+        if (($_POST['encrypted'] ?? '') === '1') {
+            $decrypted = hybrid_crypto_decrypt(
+                (string) ($_POST['enc_key'] ?? ''),
+                (string) ($_POST['iv'] ?? ''),
+                (string) ($_POST['payload'] ?? '')
+            );
+
+            if ($decrypted === null) {
+                hybrid_crypto_console_log('Cadastro cifrado recebido, mas a decriptografia FALHOU.');
+                set_flash('error', 'Não foi possível decifrar os dados enviados. Tente novamente.');
+                $this->redirect(base_path('/register'));
+            }
+
+            // S.3.1.f - Mostra os dados decifrados no console do back.
+            hybrid_crypto_console_log(sprintf(
+                'Cadastro decifrado com sucesso | name=%s | email=%s | password=%s | captcha_answer=%s | lgpd_consent=%s',
+                (string) ($decrypted['name'] ?? ''),
+                (string) ($decrypted['email'] ?? ''),
+                (string) ($decrypted['password'] ?? ''),
+                (string) ($decrypted['captcha_answer'] ?? ''),
+                (string) ($decrypted['lgpd_consent'] ?? '')
+            ));
+
+            foreach (['name', 'email', 'password', 'captcha_answer', 'lgpd_consent'] as $field) {
+                if (array_key_exists($field, $decrypted)) {
+                    $_POST[$field] = $decrypted[$field];
+                }
+            }
+        }
+
         $name = clean_text($_POST['name'] ?? '');
         $email = clean_email($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';

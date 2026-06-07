@@ -22,6 +22,7 @@
             "app/helpers/auth.php",
             "app/helpers/csrf.php",
             "app/helpers/env.php",
+            "app/helpers/hybrid_crypto.php",
             "app/helpers/logger.php",
             "app/helpers/mailer.php",
             "app/helpers/otp.php",

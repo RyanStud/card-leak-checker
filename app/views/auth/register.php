@@ -19,7 +19,12 @@
         <p style="color:green;"><?= e($msg) ?></p>
     <?php endif; ?>
 
-    <form method="POST" action="<?= e(base_path('/register')) ?>">
+    <form
+        id="register-form"
+        method="POST"
+        action="<?= e(base_path('/register')) ?>"
+        data-pubkey-url="<?= e(base_path('/crypto/public-key')) ?>"
+    >
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
         <div>
@@ -58,9 +63,12 @@
         </div>
 
         <button type="submit">Cadastrar</button>
+
+        <p id="crypto-status" style="color:#555;font-size:0.9em;" aria-live="polite"></p>
     </form>
 
     <p><a href="<?= e(base_path('/login')) ?>">Já tenho conta</a></p>
+    <script src="<?= e(base_path('/public/js/hybrid-register.js')) ?>" defer></script>
     <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>
 </html>

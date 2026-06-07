@@ -131,6 +131,7 @@ require __DIR__ . '/app/helpers/security_view.php';
 require __DIR__ . '/app/helpers/captcha.php';
 require __DIR__ . '/app/helpers/cookies.php';
 require __DIR__ . '/app/helpers/security_questions.php';
+require __DIR__ . '/app/helpers/hybrid_crypto.php';
 
 require __DIR__ . '/app/middleware/AuthMiddleware.php';
 require __DIR__ . '/app/middleware/AdminMiddleware.php';
@@ -159,6 +160,7 @@ require __DIR__ . '/app/controllers/CardController.php';
 require __DIR__ . '/app/controllers/PrivacyController.php';
 require __DIR__ . '/app/controllers/AdminController.php';
 require __DIR__ . '/app/controllers/TelegramController.php';
+require __DIR__ . '/app/controllers/CryptoController.php';
 
 SecurityMiddleware::handle();
 
@@ -191,6 +193,9 @@ $router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
 $router->get('/about', [PrivacyController::class, 'about']);
 
 $router->get('/captcha/image', [AuthController::class, 'captchaImage']);
+
+$router->get('/crypto/public-key', [CryptoController::class, 'publicKey']);
+$router->get('/crypto/certificate', [CryptoController::class, 'certificate']);
 
 $router->get('/reset-password', [AuthController::class, 'showResetPassword']);
 $router->post('/reset-password', [AuthController::class, 'resetPassword']);
