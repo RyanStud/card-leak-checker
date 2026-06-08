@@ -37,7 +37,8 @@ try {
     $secretsEnc = dirname(__DIR__) . '/' . ltrim((string) Env::get('SECRETS_FILE', 'config/secrets.enc'), '/');
     DbCipher::ensureVaultKeyMaterial($master, $secretsEnc, dirname(__DIR__));
 } catch (\Throwable $e) {
-    fwrite(STDERR, 'Erro de inicialização: ' . $e->getMessage() . "\n");
+    error_log('encrypt-db init: ' . $e->getMessage());
+    fwrite(STDERR, "Erro de inicialização (detalhe no log de erros).\n");
     exit(1);
 }
 

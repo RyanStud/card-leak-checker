@@ -185,7 +185,8 @@ function provision_db_encryption(string $projectRoot): void
 
         $pdo = Database::getConnection();
     } catch (\Throwable $e) {
-        echo "     [aviso] Banco/segredos indisponíveis (" . $e->getMessage() . "). Pulei a criptografia do banco.\n";
+        error_log('setup provision_db_encryption (bootstrap): ' . $e->getMessage());
+        echo "     [aviso] Banco/segredos indisponíveis. Pulei a criptografia do banco (detalhe no log de erros).\n";
         return;
     }
 
@@ -194,7 +195,8 @@ function provision_db_encryption(string $projectRoot): void
         $secretsEnc = $projectRoot . '/' . ltrim((string) Env::get('SECRETS_FILE', 'config/secrets.enc'), '/');
         DbCipher::ensureVaultKeyMaterial($master, $secretsEnc, $projectRoot);
     } catch (\Throwable $e) {
-        echo "     [aviso] Não foi possível preparar a DB_ENC_KEY no cofre: " . $e->getMessage() . "\n";
+        error_log('setup provision_db_encryption (DB_ENC_KEY): ' . $e->getMessage());
+        echo "     [aviso] Não foi possível preparar a DB_ENC_KEY no cofre (detalhe no log de erros).\n";
         return;
     }
 
@@ -205,7 +207,8 @@ function provision_db_encryption(string $projectRoot): void
         db_widen_user_columns($pdo);
         $updated = db_backfill_user_encryption($pdo);
     } catch (\Throwable $e) {
-        echo "     [aviso] Migração do banco interrompida: " . $e->getMessage() . "\n";
+        error_log('setup provision_db_encryption (migracao): ' . $e->getMessage());
+        echo "     [aviso] Migração do banco interrompida (detalhe no log de erros).\n";
         return;
     }
 

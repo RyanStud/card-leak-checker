@@ -162,6 +162,12 @@ function hybrid_crypto_material(): array
         if ($certPath === '' || $keyPath === '') {
             throw new RuntimeException('CERTIFICADO=ambiente requer HYBRID_CERT_PATH e HYBRID_PRIVATE_KEY_PATH.');
         }
+        // Sanitização anti path traversal nos caminhos vindos do .env.
+        foreach ([$certPath, $keyPath] as $configuredPath) {
+            if (preg_match('/[\x00-\x1f]/', $configuredPath) === 1 || str_contains($configuredPath, '..')) {
+                throw new RuntimeException('Caminho de certificado/chave inválido.');
+            }
+        }
         if (!is_readable($certPath)) {
             throw new RuntimeException("Certificado não legível pelo web server: {$certPath}");
         }

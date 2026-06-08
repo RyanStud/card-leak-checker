@@ -35,7 +35,8 @@ try {
     $vault = new LeakedCardVault();
     $inserted = $vault->importFromCsv($realPath, $sourceBatch);
 } catch (Throwable $e) {
-    fwrite(STDERR, "Falha na importacao: " . $e->getMessage() . "\n");
+    error_log('import-leaked-cards: ' . $e->getMessage());
+    fwrite(STDERR, "Falha na importacao (detalhe no log de erros).\n");
     exit(1);
 }
 

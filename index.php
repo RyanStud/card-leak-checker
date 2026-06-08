@@ -133,6 +133,7 @@ require __DIR__ . '/app/helpers/captcha.php';
 require __DIR__ . '/app/helpers/cookies.php';
 require __DIR__ . '/app/helpers/security_questions.php';
 require __DIR__ . '/app/helpers/hybrid_crypto.php';
+require __DIR__ . '/app/helpers/db_migrate.php';
 
 require __DIR__ . '/app/middleware/AuthMiddleware.php';
 require __DIR__ . '/app/middleware/AdminMiddleware.php';

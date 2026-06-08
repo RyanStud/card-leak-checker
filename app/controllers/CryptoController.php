@@ -24,8 +24,9 @@ class CryptoController extends Controller
                 'fingerprint' => hybrid_crypto_public_key_fingerprint(),
             ], JSON_UNESCAPED_SLASHES);
         } catch (\Throwable $e) {
+            error_log('CryptoController::publicKey: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Não foi possível obter a chave pública: ' . $e->getMessage()]);
+            echo json_encode(['error' => 'Não foi possível obter a chave pública.']);
         }
 
         exit;
@@ -66,6 +67,7 @@ class CryptoController extends Controller
                 echo $material['public_pem'];
             }
         } catch (\Throwable $e) {
+            error_log('CryptoController::certificate: ' . $e->getMessage());
             http_response_code(500);
             echo 'Não foi possível obter o certificado.';
         }

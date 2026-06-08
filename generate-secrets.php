@@ -1,5 +1,11 @@
 <?php
 
+// Ferramenta de linha de comando: nunca deve ser servida pela web.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden');
+}
+
 require_once __DIR__ . '/app/core/Env.php';
 Env::load(__DIR__ . '/.env');
 
@@ -16,6 +22,11 @@ if (!is_string($masterKey) || trim($masterKey) === '') {
         exit("Defina SECRET_MASTER_KEY ou MASTER_KEY_FILE no .env antes de rodar.\n");
     }
 
+    // Sanitização: rejeita byte nulo / caracteres de controle e travessia (../).
+    if (preg_match('/[\x00-\x1f]/', $masterKeyFile) === 1 || str_contains($masterKeyFile, '..')) {
+        exit("MASTER_KEY_FILE inválido.\n");
+    }
+
     $isAbsolutePath = preg_match('/^[A-Za-z]:\\\\/', $masterKeyFile) === 1 || str_starts_with($masterKeyFile, '/');
     $resolvedPath = $isAbsolutePath
         ? $masterKeyFile
@@ -23,12 +34,13 @@ if (!is_string($masterKey) || trim($masterKey) === '') {
 
     $realPath = realpath($resolvedPath);
     if ($realPath === false || !is_file($realPath)) {
-        exit("Arquivo de master key não encontrado: {$masterKeyFile}\n");
+        // Mensagem genérica (não ecoa o caminho recebido) — evita XSS/expor caminho.
+        exit("Arquivo de master key não encontrado (verifique MASTER_KEY_FILE).\n");
     }
 
     $fileKey = file_get_contents($realPath);
     if ($fileKey === false || trim($fileKey) === '') {
-        exit("Arquivo de master key vazio ou ilegível: {$masterKeyFile}\n");
+        exit("Arquivo de master key vazio ou ilegível (verifique MASTER_KEY_FILE).\n");
     }
 
     $masterKey = trim($fileKey);

@@ -103,6 +103,11 @@ class Config
 
     private static function resolveProjectFile(string $relativePath): ?string
     {
+        // Sanitização anti path traversal: rejeita byte nulo e sequências "..".
+        if (str_contains($relativePath, "\0") || str_contains($relativePath, '..')) {
+            return null;
+        }
+
         $candidatePath = self::projectPath($relativePath);
         $realPath = realpath($candidatePath);
 
@@ -122,6 +127,11 @@ class Config
 
     private static function resolveReadableFile(string $path): ?string
     {
+        // Sanitização anti path traversal: rejeita byte nulo / controle e "..".
+        if (preg_match('/[\x00-\x1f]/', $path) === 1 || str_contains($path, '..')) {
+            return null;
+        }
+
         if (!self::isAbsolutePath($path)) {
             return null;
         }

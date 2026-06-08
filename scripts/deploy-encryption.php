@@ -52,7 +52,8 @@ try {
     $mat = hybrid_crypto_material();
     echo "  fonte: {$mat['source']}\n";
 } catch (\Throwable $e) {
-    echo "  [aviso] não foi possível preparar a chave híbrida: " . $e->getMessage() . "\n";
+    error_log('deploy-encryption (S.3.1): ' . $e->getMessage());
+    echo "  [aviso] não foi possível preparar a chave híbrida (detalhe no log de erros).\n";
 }
 
 // ---- S.3.2: chave do banco no cofre + migração --------------------------
@@ -60,7 +61,8 @@ echo "\n[S.3.2] Criptografia do banco...\n";
 try {
     $pdo = Database::getConnection();
 } catch (\Throwable $e) {
-    fwrite(STDERR, "[ERRO] Não conectou no banco: " . $e->getMessage() . "\n");
+    error_log('deploy-encryption (DB connect): ' . $e->getMessage());
+    fwrite(STDERR, "[ERRO] Não conectou no banco (detalhe no log de erros).\n");
     exit(1);
 }
 
@@ -69,7 +71,8 @@ try {
     DbCipher::ensureVaultKeyMaterial($master, $secretsEnc, $root);
     echo "  DB_ENC_KEY garantida no cofre (config/secrets.enc).\n";
 } catch (\Throwable $e) {
-    fwrite(STDERR, "[ERRO] Não foi possível preparar a DB_ENC_KEY no cofre: " . $e->getMessage() . "\n");
+    error_log('deploy-encryption (DB_ENC_KEY): ' . $e->getMessage());
+    fwrite(STDERR, "[ERRO] Não foi possível preparar a DB_ENC_KEY no cofre (detalhe no log de erros).\n");
     exit(1);
 }
 
@@ -80,7 +83,8 @@ try {
         ? "  Backfill: {$updated} usuário(s) cifrado(s).\n"
         : "  Banco já cifrado (nada a fazer).\n";
 } catch (\Throwable $e) {
-    fwrite(STDERR, "[ERRO] Migração do banco falhou: " . $e->getMessage() . "\n");
+    error_log('deploy-encryption (migracao): ' . $e->getMessage());
+    fwrite(STDERR, "[ERRO] Migração do banco falhou (detalhe no log de erros).\n");
     exit(1);
 }
 

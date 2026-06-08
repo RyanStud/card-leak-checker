@@ -71,6 +71,17 @@ class Privacy
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
 
-        return $user ?: null;
+        if (!$user) {
+            return null;
+        }
+
+        // Decifra os campos sensíveis (S.3.2) — esta query não passa pelo model User.
+        foreach (db_user_encrypted_columns() as $field => $meta) {
+            if (array_key_exists($field, $user) && $user[$field] !== null) {
+                $user[$field] = DbCipher::decrypt((string) $user[$field]);
+            }
+        }
+
+        return $user;
     }
 }

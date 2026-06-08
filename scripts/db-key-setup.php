@@ -55,7 +55,8 @@ try {
         echo "     (e em storage/logs/db-crypto.log) para os screenshots.\n";
     }
 } catch (\Throwable $e) {
-    fwrite(STDERR, 'Erro: ' . $e->getMessage() . "\n");
+    error_log('db-key-setup: ' . $e->getMessage());
+    fwrite(STDERR, "Erro ao preparar a chave do banco (detalhe no log de erros).\n");
     exit(1);
 }
 

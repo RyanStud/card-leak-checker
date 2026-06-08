@@ -506,7 +506,8 @@ class AdminController extends Controller
 
             set_flash('success', 'Importacao concluida. Registros inseridos: ' . (string)$inserted . '. Lote: ' . $sourceBatch);
         } catch (Throwable $e) {
-            set_flash('error', 'Falha na importacao: ' . $e->getMessage());
+            error_log('AdminController::importCards: ' . $e->getMessage());
+            set_flash('error', 'Falha na importacao. Verifique o arquivo e tente novamente.');
         }
 
         $this->redirect(base_path('/admin'));
