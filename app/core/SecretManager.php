@@ -85,4 +85,51 @@ class SecretManager
     {
         return $this->secrets;
     }
+
+    /**
+     * Recriptografa e grava o cofre completo (mesmo envelope do generate-secrets).
+     * Usado para acrescentar segredos em runtime (ex.: DB_ENC_KEY do S.3.2) sem
+     * precisar do config/secrets.json em claro.
+     *
+     * @param array<string,mixed> $secrets
+     */
+    public static function writeVault(string $filePath, array $secrets, string $masterKey): void
+    {
+        if ($masterKey === '') {
+            throw new RuntimeException('SECRET_MASTER_KEY não informado.');
+        }
+
+        $cipher = 'aes-256-gcm';
+        $iv = random_bytes(12);
+        $tag = '';
+
+        $plaintext = json_encode($secrets, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if ($plaintext === false) {
+            throw new RuntimeException('Falha ao serializar os segredos.');
+        }
+
+        $encrypted = openssl_encrypt(
+            $plaintext,
+            $cipher,
+            hash('sha256', $masterKey, true),
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        if ($encrypted === false) {
+            throw new RuntimeException('Falha ao criptografar os segredos.');
+        }
+
+        $payload = base64_encode((string) json_encode([
+            'cipher' => $cipher,
+            'iv' => base64_encode($iv),
+            'tag' => base64_encode($tag),
+            'value' => base64_encode($encrypted),
+        ], JSON_UNESCAPED_SLASHES));
+
+        if (file_put_contents($filePath, $payload) === false) {
+            throw new RuntimeException('Falha ao gravar o cofre de segredos em ' . $filePath);
+        }
+    }
 }

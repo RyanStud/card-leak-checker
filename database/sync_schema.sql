@@ -289,6 +289,21 @@ ALTER TABLE users
     ADD UNIQUE INDEX IF NOT EXISTS uq_users_cpf (cpf),
     ALTER COLUMN email_verified SET DEFAULT 0;
 
+-- Criptografia do banco (S.3.2): alarga as colunas sensíveis para caberem os
+-- valores cifrados (prefixo enc:v1: + base64). NÃO altera o email (mantido em
+-- claro para identificar registros). Operação não-destrutiva e reexecutável.
+ALTER TABLE users
+    MODIFY IF EXISTS name VARCHAR(512) NOT NULL,
+    MODIFY IF EXISTS cpf VARCHAR(255) NULL,
+    MODIFY IF EXISTS job_title VARCHAR(512) NULL,
+    MODIFY IF EXISTS cep VARCHAR(255) NULL,
+    MODIFY IF EXISTS address_street VARCHAR(512) NULL,
+    MODIFY IF EXISTS address_number VARCHAR(255) NULL,
+    MODIFY IF EXISTS address_complement VARCHAR(512) NULL,
+    MODIFY IF EXISTS address_neighborhood VARCHAR(512) NULL,
+    MODIFY IF EXISTS address_city VARCHAR(512) NULL,
+    MODIFY IF EXISTS address_state VARCHAR(255) NULL;
+
 ALTER TABLE telegram_accounts
     ADD COLUMN IF NOT EXISTS telegram_user_id BIGINT NULL AFTER user_id,
     ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(32) NULL AFTER telegram_user_id,

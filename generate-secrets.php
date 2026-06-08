@@ -3,6 +3,10 @@
 require_once __DIR__ . '/app/core/Env.php';
 Env::load(__DIR__ . '/.env');
 
+require_once __DIR__ . '/app/core/SecretManager.php';
+require_once __DIR__ . '/app/helpers/hybrid_crypto.php';
+require_once __DIR__ . '/app/core/DbCipher.php';
+
 $masterKey = getenv('SECRET_MASTER_KEY');
 
 if (!is_string($masterKey) || trim($masterKey) === '') {
@@ -49,6 +53,30 @@ if (!is_array($decoded)) {
     exit("config/secrets.json não contém JSON válido.\n");
 }
 
+// S.3.2 - garante DB_ENC_KEY no cofre. Preserva o existente (NUNCA regenera, pra
+// não perder dados); se faltar, carrega do secrets.enc atual ou gera nova.
+$existingDek = isset($decoded['DB_ENC_KEY']) ? trim((string) $decoded['DB_ENC_KEY']) : '';
+if ($existingDek === '' && file_exists($outputFile)) {
+    try {
+        $currentVault = new SecretManager($outputFile, $masterKey);
+        $existingDek = trim((string) $currentVault->get('DB_ENC_KEY', ''));
+    } catch (\Throwable $e) {
+        // cofre atual ilegível com esta master key — segue para gerar nova.
+    }
+}
+
+$dekMaterial = DbCipher::resolveKeyMaterial($existingDek !== '' ? $existingDek : null, $masterKey, __DIR__);
+
+if (($decoded['DB_ENC_KEY'] ?? '') !== $dekMaterial) {
+    $decoded['DB_ENC_KEY'] = $dekMaterial;
+    // grava de volta no secrets.json (fonte) e recompõe o texto a ser cifrado
+    file_put_contents(
+        $inputFile,
+        json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"
+    );
+    $plaintext = (string) json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+}
+
 $cipher = 'aes-256-gcm';
 $iv = random_bytes(12);
 $tag = '';
@@ -83,4 +111,5 @@ if ($result === false) {
 }
 
 echo "Arquivo config/secrets.enc gerado com sucesso.\n";
+DbCipher::console('[S.3.2.b] Chave do banco (DB_ENC_KEY) armazenada na gestão de segredos (config/secrets.enc).');
 echo "Apague o config/secrets.json depois de validar.\n";

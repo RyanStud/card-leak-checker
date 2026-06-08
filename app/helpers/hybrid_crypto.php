@@ -122,6 +122,8 @@ function hybrid_crypto_ensure_keys(): array
 function hybrid_crypto_config(): array
 {
     return [
+        // CERTIFICADO=web (par próprio do app) | ambiente (cert do servidor) | vazio (auto)
+        'mode' => function_exists('env') ? strtolower(trim((string) env('CERTIFICADO', ''))) : '',
         'cert_path' => function_exists('env') ? trim((string) env('HYBRID_CERT_PATH', '')) : '',
         'key_path' => function_exists('env') ? trim((string) env('HYBRID_PRIVATE_KEY_PATH', '')) : '',
     ];
@@ -142,12 +144,23 @@ function hybrid_crypto_material(): array
     }
 
     $cfg = hybrid_crypto_config();
+    $mode = $cfg['mode'];
     $certPath = $cfg['cert_path'];
     $keyPath = $cfg['key_path'];
 
-    if ($certPath !== '' || $keyPath !== '') {
+    // Decide a fonte da chave:
+    //  - CERTIFICADO=ambiente  -> certificado do servidor (HYBRID_CERT_PATH/KEY)
+    //  - CERTIFICADO=web        -> par próprio do app (storage/keys), ignora os caminhos
+    //  - vazio (auto)           -> usa os caminhos se ambos definidos; senão, par próprio
+    $useServerCert = match (true) {
+        in_array($mode, ['ambiente', 'servidor', 'tls', 'env'], true) => true,
+        in_array($mode, ['web', 'app', 'hostinger', 'proprio', 'próprio'], true) => false,
+        default => ($certPath !== '' && $keyPath !== ''),
+    };
+
+    if ($useServerCert) {
         if ($certPath === '' || $keyPath === '') {
-            throw new RuntimeException('Configure HYBRID_CERT_PATH e HYBRID_PRIVATE_KEY_PATH juntos.');
+            throw new RuntimeException('CERTIFICADO=ambiente requer HYBRID_CERT_PATH e HYBRID_PRIVATE_KEY_PATH.');
         }
         if (!is_readable($certPath)) {
             throw new RuntimeException("Certificado não legível pelo web server: {$certPath}");

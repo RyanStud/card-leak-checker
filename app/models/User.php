@@ -4,9 +4,50 @@ class User
 {
     private PDO $pdo;
 
+    /** Campos sensíveis cifrados com IV aleatório (só exibição). */
+    private const ENC_FIELDS = [
+        'name',
+        'job_title',
+        'cep',
+        'address_street',
+        'address_number',
+        'address_complement',
+        'address_neighborhood',
+        'address_city',
+        'address_state',
+    ];
+
+    /** Campos cifrados de forma determinística (precisam de igualdade/UNIQUE). */
+    private const ENC_FIELDS_DETERMINISTIC = ['cpf'];
+
     public function __construct()
     {
         $this->pdo = Database::getConnection();
+    }
+
+    /**
+     * Decifra os campos sensíveis de uma linha lida do banco (S.3.2).
+     * email/password_hash/role não são cifrados.
+     */
+    private function decryptRow(?array $row): ?array
+    {
+        if ($row === null) {
+            return null;
+        }
+
+        foreach (array_merge(self::ENC_FIELDS, self::ENC_FIELDS_DETERMINISTIC) as $field) {
+            if (array_key_exists($field, $row) && $row[$field] !== null) {
+                $row[$field] = DbCipher::decrypt((string) $row[$field]);
+            }
+        }
+
+        return $row;
+    }
+
+    /** @param array<int,array<string,mixed>> $rows */
+    private function decryptRows(array $rows): array
+    {
+        return array_map(fn ($row) => $this->decryptRow($row), $rows);
     }
 
     public function create(string $name, string $email, string $passwordHash): bool
@@ -15,7 +56,8 @@ class User
             'INSERT INTO users (name, email, password_hash, email_verified) VALUES (?, ?, ?, 0)'
         );
 
-        return $stmt->execute([$name, $email, $passwordHash]);
+        // S.3.2.c - dado sensível do form cifrado antes de ir ao banco.
+        return $stmt->execute([DbCipher::encrypt($name), $email, $passwordHash]);
     }
 
     public function markEmailAsVerified(int $userId): bool
@@ -28,6 +70,20 @@ class User
     }
 
     public function findByEmail(string $email): ?array
+    {
+        // email fica em claro (não cifrado) -> busca direta.
+        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        return $user ? $this->decryptRow($user) : null;
+    }
+
+    /**
+     * Linha CRUA (ainda cifrada) por email — usada para demonstrar o S.3.2.d
+     * (recuperar do BD cifrado e depois decifrar).
+     */
+    public function findRawByEmail(string $email): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
         $stmt->execute([$email]);
@@ -42,7 +98,7 @@ class User
         $stmt->execute([$id]);
         $user = $stmt->fetch();
 
-        return $user ?: null;
+        return $user ? $this->decryptRow($user) : null;
     }
 
     public function saveTwoFactorSecret(int $userId, string $secret): bool
@@ -65,11 +121,12 @@ class User
 
     public function findByCpf(string $cpfDigits): ?array
     {
+        // cpf é cifrado de forma determinística -> cifra o termo de busca para casar.
         $stmt = $this->pdo->prepare('SELECT * FROM users WHERE cpf = ? LIMIT 1');
-        $stmt->execute([$cpfDigits]);
+        $stmt->execute([DbCipher::encrypt($cpfDigits, true)]);
         $user = $stmt->fetch();
 
-        return $user ?: null;
+        return $user ? $this->decryptRow($user) : null;
     }
 
     public function updateProfile(
@@ -101,16 +158,16 @@ class User
         );
 
         return $stmt->execute([
-            $name,
-            $cpf,
-            $jobTitle,
-            $cep,
-            $addressStreet,
-            $addressNumber,
-            $addressComplement,
-            $addressNeighborhood,
-            $addressCity,
-            $addressState,
+            DbCipher::encrypt($name),
+            $cpf !== null ? DbCipher::encrypt($cpf, true) : null,
+            DbCipher::encrypt($jobTitle),
+            DbCipher::encrypt($cep),
+            DbCipher::encrypt($addressStreet),
+            DbCipher::encrypt($addressNumber),
+            DbCipher::encrypt($addressComplement),
+            DbCipher::encrypt($addressNeighborhood),
+            DbCipher::encrypt($addressCity),
+            DbCipher::encrypt($addressState),
             $userId,
         ]);
     }
@@ -133,7 +190,7 @@ class User
             );
         }
 
-        return $stmt->fetchAll();
+        return $this->decryptRows($stmt->fetchAll());
     }
 
     public function getUsersWithTelegramStatus(string $emailFilter = '', int $limit = 20, int $offset = 0): array
@@ -174,7 +231,7 @@ class User
         }
         $stmt->execute();
 
-        return $stmt->fetchAll();
+        return $this->decryptRows($stmt->fetchAll());
     }
 
     public function countUsersWithTelegramStatus(string $emailFilter = ''): int

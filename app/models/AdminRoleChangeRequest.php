@@ -65,7 +65,18 @@ class AdminRoleChangeRequest
         $stmt->bindValue(1, $limit, PDO::PARAM_INT);
         $stmt->execute();
 
-        return $stmt->fetchAll();
+        // requester_name / target_name (users.name) vêm cifrados; decifra (S.3.2).
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            foreach (['requester_name', 'target_name'] as $field) {
+                if (isset($row[$field])) {
+                    $row[$field] = DbCipher::decrypt((string) $row[$field]);
+                }
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function findPendingById(int $requestId): ?array

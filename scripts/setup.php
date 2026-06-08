@@ -68,6 +68,10 @@ putenv('SECRET_MASTER_KEY=' . $masterKey);
 $_ENV['SECRET_MASTER_KEY'] = $masterKey;
 $_SERVER['SECRET_MASTER_KEY'] = $masterKey;
 
+// Criptografia do banco (S.3.2): garante a chave, alarga colunas e cifra os
+// registros ainda em claro. Idempotente e best-effort (não aborta o setup).
+provision_db_encryption($projectRoot);
+
 if (!file_exists($secretsJson)) {
     if (file_exists($secretsEnc)) {
         echo "[ok] config/secrets.enc já existe e nenhum config/secrets.json para criptografar.\n";
@@ -111,16 +115,7 @@ function provision_storage_dirs(string $projectRoot): void
 
     // Detecta o usuário do web server e dá posse de storage/ a ele, para o
     // php-fpm conseguir gerar storage/keys e gravar os logs (S.3.1).
-    $webUser = '';
-    foreach (['www-data', 'apache', 'nginx', 'http'] as $candidate) {
-        $out = [];
-        $code = 0;
-        exec('id -u ' . escapeshellarg($candidate) . ' 2>/dev/null', $out, $code);
-        if ($code === 0) {
-            $webUser = $candidate;
-            break;
-        }
-    }
+    $webUser = detect_web_user();
 
     if ($webUser === '') {
         echo "     [aviso] usuário do web server não detectado; ajuste o dono de storage/ manualmente.\n";
@@ -139,6 +134,85 @@ function provision_storage_dirs(string $projectRoot): void
         if ($out !== []) {
             echo '       ' . implode("\n       ", $out) . "\n";
         }
+    }
+}
+
+function detect_web_user(): string
+{
+    if (PHP_OS_FAMILY === 'Windows') {
+        return '';
+    }
+
+    foreach (['www-data', 'apache', 'nginx', 'http'] as $candidate) {
+        $out = [];
+        $code = 0;
+        exec('id -u ' . escapeshellarg($candidate) . ' 2>/dev/null', $out, $code);
+        if ($code === 0) {
+            return $candidate;
+        }
+    }
+
+    return '';
+}
+
+/**
+ * S.3.2 — garante a criptografia do banco quando ele ainda não está cifrado:
+ *  - prepara a chave (gera+protege se faltar);
+ *  - alarga as colunas sensíveis (idempotente);
+ *  - cifra os registros ainda em claro (backfill idempotente);
+ *  - ajusta o dono do key file para o web server.
+ * Best-effort: se o banco/segredos não estiverem disponíveis, apenas avisa.
+ */
+function provision_db_encryption(string $projectRoot): void
+{
+    echo "[..] Criptografia do banco (S.3.2)...\n";
+
+    try {
+        require_once $projectRoot . '/app/core/SecretManager.php';
+        require_once $projectRoot . '/app/core/Config.php';
+        require_once $projectRoot . '/app/helpers/env.php';
+        require_once $projectRoot . '/app/helpers/hybrid_crypto.php';
+        require_once $projectRoot . '/app/core/DbCipher.php';
+        require_once $projectRoot . '/app/core/Database.php';
+
+        Config::init();
+
+        $master = Config::masterKey();
+        if ($master === '') {
+            echo "     [aviso] SECRET_MASTER_KEY ausente; pulei a criptografia do banco.\n";
+            return;
+        }
+
+        $pdo = Database::getConnection();
+    } catch (\Throwable $e) {
+        echo "     [aviso] Banco/segredos indisponíveis (" . $e->getMessage() . "). Pulei a criptografia do banco.\n";
+        return;
+    }
+
+    // 1) Chave do banco no cofre (S.3.2.a/b) — gera+armazena DB_ENC_KEY se faltar.
+    try {
+        $secretsEnc = $projectRoot . '/' . ltrim((string) Env::get('SECRETS_FILE', 'config/secrets.enc'), '/');
+        DbCipher::ensureVaultKeyMaterial($master, $secretsEnc, $projectRoot);
+    } catch (\Throwable $e) {
+        echo "     [aviso] Não foi possível preparar a DB_ENC_KEY no cofre: " . $e->getMessage() . "\n";
+        return;
+    }
+
+    // 2) Alarga as colunas e cifra os registros em claro (idempotente).
+    require_once $projectRoot . '/app/helpers/db_migrate.php';
+
+    try {
+        db_widen_user_columns($pdo);
+        $updated = db_backfill_user_encryption($pdo);
+    } catch (\Throwable $e) {
+        echo "     [aviso] Migração do banco interrompida: " . $e->getMessage() . "\n";
+        return;
+    }
+
+    if ($updated > 0) {
+        echo "     [ok] Backfill concluído: {$updated} usuário(s) cifrado(s).\n";
+    } else {
+        echo "     [ok] Banco já cifrado (nada a fazer).\n";
     }
 }
 

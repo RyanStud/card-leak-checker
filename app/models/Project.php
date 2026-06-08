@@ -53,7 +53,17 @@ class Project
         );
 
         $stmt->execute(['pending']);
-        return $stmt->fetchAll();
+
+        // u.name (dono) vem cifrado; decifra para exibição (S.3.2).
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            if (isset($row['name'])) {
+                $row['name'] = DbCipher::decrypt((string) $row['name']);
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function getApprovalHistory(int $limit = 50, int $offset = 0): array
@@ -83,7 +93,19 @@ class Project
         );
 
         $stmt->execute(['approved', 'rejected']);
-        return $stmt->fetchAll();
+
+        // owner_name / admin_name (u.name) vêm cifrados; decifra para exibição.
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            foreach (['owner_name', 'admin_name'] as $field) {
+                if (isset($row[$field])) {
+                    $row[$field] = DbCipher::decrypt((string) $row[$field]);
+                }
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function getApprovalHistoryCount(): int
@@ -183,7 +205,16 @@ class Project
 
         $stmt->execute([$projectId]);
 
-        return $stmt->fetchAll();
+        // u.name (membro) vem cifrado; decifra para exibição.
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            if (isset($row['name'])) {
+                $row['name'] = DbCipher::decrypt((string) $row['name']);
+            }
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function removeMember(int $projectId, int $userId): bool

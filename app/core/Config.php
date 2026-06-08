@@ -48,6 +48,15 @@ class Config
         throw new RuntimeException("Segredo obrigatório ausente: {$key}");
     }
 
+    /**
+     * Master key da gestão de segredos (ambiente do SO / php-fpm / arquivo).
+     * Usada para proteger a chave de criptografia do banco (S.3.2.b).
+     */
+    public static function masterKey(): string
+    {
+        return self::readMasterKey();
+    }
+
     private static function readMasterKey(): string
     {
         $envValue = getenv('SECRET_MASTER_KEY');

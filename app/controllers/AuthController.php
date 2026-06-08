@@ -95,6 +95,19 @@ class AuthController extends Controller
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         $userModel->create($name, $email, $passwordHash);
 
+        // S.3.2.c/d - prova do round-trip de criptografia do banco.
+        $rawUser = $userModel->findRawByEmail($email);
+        if ($rawUser !== null) {
+            // S.3.2.c - como o dado sensível ficou persistido (cifrado) no BD.
+            DbCipher::console('[S.3.2.c] Persistido CIFRADO no BD -> name=' . (string) ($rawUser['name'] ?? ''));
+            // S.3.2.d - recuperado do BD e descriptografado na aplicação.
+            DbCipher::console(sprintf(
+                '[S.3.2.d] Recuperado do BD e descriptografado -> informações do cadastro: name=%s | email=%s',
+                DbCipher::decrypt((string) ($rawUser['name'] ?? '')),
+                (string) ($rawUser['email'] ?? '')
+            ));
+        }
+
         $createdUser = $userModel->findByEmail($email);
 
         if ($createdUser) {

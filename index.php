@@ -116,6 +116,7 @@ session_set_cookie_params([
 session_start();
 
 require __DIR__ . '/app/core/Database.php';
+require __DIR__ . '/app/core/DbCipher.php';
 require __DIR__ . '/app/core/Controller.php';
 require __DIR__ . '/app/core/Router.php';
 
