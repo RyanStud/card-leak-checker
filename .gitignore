@@ -1,4 +1,5 @@
 /vendor/
+/node_modules/
 /.env
 /storage/logs/*.log
 /storage/keys/

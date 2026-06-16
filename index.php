@@ -11,6 +11,8 @@ require __DIR__ . '/app/helpers/url.php';
 
 Config::init();
 
+date_default_timezone_set((string) env('APP_TIMEZONE', 'America/Sao_Paulo'));
+
 $debug = filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOL);
 $appEnv = (string) env('APP_ENV', 'production');
 
@@ -193,6 +195,7 @@ $router->get('/forgot-password', [AuthController::class, 'showForgotPassword']);
 $router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
 $router->get('/about', [PrivacyController::class, 'about']);
+$router->get('/terms', [PrivacyController::class, 'terms']);
 
 $router->get('/captcha/image', [AuthController::class, 'captchaImage']);
 
@@ -230,6 +233,7 @@ $router->get('/privacy', [PrivacyController::class, 'index']);
 $router->post('/privacy/cookies-consent', [PrivacyController::class, 'saveCookieConsent']);
 $router->post('/privacy/delete-history', [PrivacyController::class, 'deleteHistory']);
 $router->post('/privacy/delete-projects', [PrivacyController::class, 'deleteProjects']);
+$router->post('/privacy/delete-field', [PrivacyController::class, 'deleteField']);
 $router->post('/privacy/delete-account', [PrivacyController::class, 'deleteAccount']);
 $router->post('/privacy/security-questions', [PrivacyController::class, 'saveSecurityQuestions']);
 

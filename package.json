@@ -1,0 +1,9 @@
+{
+  "name": "card-leak-checker",
+  "version": "1.0.0",
+  "description": "Testes do JS do lado do cliente (sanitização de inputs do check-card).",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

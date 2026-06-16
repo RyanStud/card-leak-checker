@@ -25,6 +25,11 @@ class PrivacyController extends Controller
         $this->view('about/index');
     }
 
+    public function terms(): void
+    {
+        $this->view('terms/index');
+    }
+
     public function index(): void
     {
         AuthMiddleware::handle();
@@ -47,7 +52,37 @@ class PrivacyController extends Controller
             'projectsCount' => $projectsCount,
             'securityCount' => $securityCount,
             'securityIndices' => $securityIndices,
+            'removableFields' => $privacyModel->removableFields(),
         ]);
+    }
+
+    public function deleteField(): void
+    {
+        AuthMiddleware::handle();
+        verify_csrf();
+
+        $userId = (int)$_SESSION['user_id'];
+        $field = clean_text($_POST['field'] ?? '');
+
+        $privacyModel = new Privacy();
+
+        if (!in_array($field, $privacyModel->removableFields(), true)) {
+            set_flash('error', 'Campo inválido para remoção.');
+            $this->redirect(base_path('/privacy'));
+        }
+
+        $privacyModel->clearUserField($userId, $field);
+
+        $audit = new AuditLog();
+        $audit->create(
+            $userId,
+            null,
+            'lgpd_delete_field',
+            json_encode(['field' => $field], JSON_UNESCAPED_UNICODE)
+        );
+
+        set_flash('success', 'Dado removido com sucesso.');
+        $this->redirect(base_path('/privacy'));
     }
 
     public function deleteHistory(): void

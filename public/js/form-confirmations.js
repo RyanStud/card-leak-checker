@@ -33,6 +33,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Remoção de campo individual (LGPD) — pode haver vários botões na tabela
+    const deleteFieldForms = document.querySelectorAll('form[data-confirm-action][action*="/privacy/delete-field"]');
+    deleteFieldForms.forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            const label = form.getAttribute('data-field-label') || 'este dado';
+            if (!confirm('Deseja remover o dado "' + label + '"? Esta ação não pode ser desfeita.')) {
+                e.preventDefault();
+            }
+        });
+    });
+
     // Delete account confirmation
     const deleteAccountForm = document.querySelector('form[data-confirm-action][action*="/privacy/delete-account"]');
     if (deleteAccountForm) {

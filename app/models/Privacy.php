@@ -21,6 +21,39 @@ class Privacy
         return $stmt->execute([$userId]);
     }
 
+    /**
+     * Campos pessoais opcionais que o usuário pode apagar individualmente (LGPD).
+     * Espelha db_user_encrypted_columns() menos os obrigatórios — 'name' é
+     * NOT NULL e não pode ser zerado. Todos os demais são colunas NULL-áveis.
+     *
+     * @return string[]
+     */
+    public function removableFields(): array
+    {
+        $columns = array_keys(db_user_encrypted_columns());
+
+        return array_values(array_filter(
+            $columns,
+            static fn (string $col): bool => $col !== 'name'
+        ));
+    }
+
+    /**
+     * Zera (NULL) um único campo pessoal do usuário. O nome da coluna é validado
+     * contra a whitelist removableFields() antes de entrar na query — nunca vem
+     * direto da entrada do usuário, então a interpolação é segura.
+     */
+    public function clearUserField(int $userId, string $field): bool
+    {
+        if (!in_array($field, $this->removableFields(), true)) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare("UPDATE users SET {$field} = NULL WHERE id = ?");
+
+        return $stmt->execute([$userId]);
+    }
+
     public function anonymizeAuditLogs(int $userId): bool
     {
         $stmt = $this->pdo->prepare(

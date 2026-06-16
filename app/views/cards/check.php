@@ -16,13 +16,42 @@
     <?php endif; ?>
 
     <?php if (!empty($_SESSION['check_result'])): ?>
-        <?php $result = $_SESSION['check_result']; unset($_SESSION['check_result']); ?>
-        <div style="border:1px solid #333; padding:12px; margin-bottom:20px;">
-            <h3>Resultado da última consulta</h3>
-            <p><strong>BIN mascarado:</strong> <?= e($result['bin_masked']) ?></p>
-            <p><strong>Últimos 4:</strong> <?= e($result['last4_masked']) ?></p>
-            <p><strong>Status:</strong> <?= e($result['result_status']) ?></p>
-            <p><strong>Data:</strong> <?= e($result['checked_at']) ?></p>
+        <?php
+            $result = $_SESSION['check_result'];
+            unset($_SESSION['check_result']);
+
+            $isLeak = ($result['result_status'] ?? '') === 'possible_leak_found';
+            // Vazamento = aviso assertivo (role=alert); seguro = status polido (role=status).
+            $resultRole = $isLeak ? 'alert' : 'status';
+            $resultClass = $isLeak ? 'check-result--leak' : 'check-result--safe';
+            $resultIcon = $isLeak ? '⚠️' : '✓';
+            $resultTitle = $isLeak
+                ? 'Possível vazamento encontrado'
+                : 'Nenhuma evidência de vazamento';
+            $resultLead = $isLeak
+                ? 'Este cartão corresponde a um registro na base de vazamentos consultada. Recomendamos bloquear/substituir o cartão e investigar o incidente.'
+                : 'Não encontramos este cartão na base de vazamentos consultada no momento.';
+        ?>
+        <div class="check-result <?= $resultClass ?>" role="<?= $resultRole ?>">
+            <div class="check-result__head">
+                <span class="check-result__icon" aria-hidden="true"><?= $resultIcon ?></span>
+                <h3 class="check-result__title"><?= e($resultTitle) ?></h3>
+            </div>
+            <p class="check-result__lead"><?= e($resultLead) ?></p>
+            <dl class="check-result__meta">
+                <div>
+                    <dt>BIN mascarado</dt>
+                    <dd><?= e($result['bin_masked']) ?></dd>
+                </div>
+                <div>
+                    <dt>Últimos 4</dt>
+                    <dd><?= e($result['last4_masked']) ?></dd>
+                </div>
+                <div>
+                    <dt>Data da consulta</dt>
+                    <dd><?= e($result['checked_at']) ?></dd>
+                </div>
+            </dl>
         </div>
     <?php endif; ?>
 
@@ -71,26 +100,35 @@
 
             <div>
                 <label>Número do cartão</label><br>
-                <input type="text" name="card_number" placeholder="Ex: 4111111111111111" maxlength="19" required>
+                <input type="text" name="card_number" placeholder="Ex: 4111111111111111"
+                    maxlength="19" inputmode="numeric" pattern="[0-9]{13,19}"
+                    autocomplete="off" title="Apenas números (13 a 19 dígitos)" required>
             </div>
 
             <div>
                 <label>Mês de validade (MM)</label><br>
-                <input type="text" name="expiry_month" placeholder="Ex: 08" maxlength="2" required>
+                <input type="text" name="expiry_month" placeholder="Ex: 08"
+                    maxlength="2" inputmode="numeric" pattern="(0?[1-9]|1[0-2])"
+                    autocomplete="off" title="Mês entre 1 e 12" required>
             </div>
 
             <div>
                 <label>Ano de validade (AAAA)</label><br>
-                <input type="text" name="expiry_year" placeholder="Ex: 2029" maxlength="4" required>
+                <input type="text" name="expiry_year" placeholder="Ex: 2029"
+                    maxlength="4" inputmode="numeric" pattern="[0-9]{4}"
+                    autocomplete="off" title="Ano com 4 dígitos" required>
             </div>
 
             <div>
                 <label>CVV</label><br>
-                <input type="password" name="cvv" placeholder="Ex: 123" maxlength="4" required>
+                <input type="password" name="cvv" placeholder="Ex: 123"
+                    maxlength="4" inputmode="numeric" pattern="[0-9]{3,4}"
+                    autocomplete="off" title="3 ou 4 dígitos" required>
             </div>
 
             <button type="submit">Verificar</button>
         </form>
+        <script src="<?= e(base_path('/public/js/card-check.js')) ?>" defer></script>
     <?php endif; ?>
     <?php require __DIR__ . '/../partials/footer.php'; ?>
 </body>

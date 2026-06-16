@@ -46,12 +46,14 @@
             ];
 
             $sensitiveFields = ['password_hash', 'two_factor_secret'];
+            $removableFields = $removableFields ?? [];
         ?>
 
         <table>
             <tr>
                 <th>Campo</th>
                 <th>Valor armazenado</th>
+                <th>Ações</th>
             </tr>
             <?php foreach ($profile as $field => $rawValue): ?>
                 <?php
@@ -64,10 +66,26 @@
                     } else {
                         $displayValue = ($rawValue === null || $rawValue === '') ? 'nao informado' : (string)$rawValue;
                     }
+
+                    // Só pode remover campos da whitelist (LGPD) que tenham valor.
+                    $hasValue = !($rawValue === null || $rawValue === '');
+                    $canRemove = in_array($field, $removableFields, true) && $hasValue;
                 ?>
                 <tr>
                     <td><strong><?= e($displayLabel) ?></strong></td>
                     <td><?= e($displayValue) ?></td>
+                    <td>
+                        <?php if ($canRemove): ?>
+                            <form method="POST" action="<?= e(base_path('/privacy/delete-field')) ?>"
+                                  data-confirm-action data-field-label="<?= e($displayLabel) ?>" style="display:inline;">
+                                <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="field" value="<?= e($field) ?>">
+                                <button type="submit">Remover</button>
+                            </form>
+                        <?php else: ?>
+                            &mdash;
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </table>

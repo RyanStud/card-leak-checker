@@ -58,7 +58,9 @@
                     <?= old('lgpd_consent') === '1' ? 'checked' : '' ?>
                     required
                 >
-                Li e concordo com o tratamento dos meus dados pessoais, conforme a LGPD.
+                Li e concordo com os
+                <a href="<?= e(base_path('/terms')) ?>" target="_blank" rel="noopener">termos de uso</a>
+                e com o tratamento dos meus dados pessoais, conforme a LGPD.
             </label>
         </div>
 
